@@ -5,6 +5,8 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.geomeasure.pro"
     compileSdk = 35
@@ -35,10 +37,24 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("/home/warden/geo/debug.keystore")
-            storePassword = "android"
-            keyAlias = "debug"
-            keyPassword = "android"
+            fun readProperty(key: String): String? {
+                val env = System.getenv("GM_${key.uppercase().replace('.', '_')}")
+                if (env != null) return env
+                val propsFile = rootProject.file("signing.properties")
+                if (propsFile.exists()) {
+                    val props = Properties().apply { load(propsFile.inputStream()) }
+                    return props.getProperty(key)
+                }
+                return null
+            }
+
+            val ksPath = readProperty("keystore.path")
+            if (ksPath != null) {
+                storeFile = file(ksPath)
+                storePassword = readProperty("keystore.password") ?: ""
+                keyAlias = readProperty("key.alias") ?: ""
+                keyPassword = readProperty("key.password") ?: ""
+            }
         }
     }
 
