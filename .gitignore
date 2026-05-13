@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+!app/build.gradle.kts
+!build.gradle.kts
+local.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Android
+app/build/
+app/release/
+*.apk
+*.aab
+*.keystore
+*.jks
+*.ap_
+
+# OS files
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
