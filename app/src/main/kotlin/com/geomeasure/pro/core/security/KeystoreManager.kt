@@ -45,7 +45,10 @@ object KeystoreManager {
             prefs.edit().putString(PREF_KEY, Base64.encodeToString(combined, Base64.NO_WRAP)).apply()
         }
 
-        val combined = Base64.decode(prefs.getString(PREF_KEY, ""), Base64.NO_WRAP)
+        val prefValue = prefs.getString(PREF_KEY, "")
+        if (prefValue.isNullOrEmpty()) error("Keystore preference missing or corrupt")
+        val combined = Base64.decode(prefValue, Base64.NO_WRAP)
+        if (combined.size < 13) error("Invalid stored key format")
         val iv = combined.copyOfRange(0, 12)
         val encrypted = combined.copyOfRange(12, combined.size)
         val secretKey = keyStore.getKey(KEY_ALIAS, null) as SecretKey

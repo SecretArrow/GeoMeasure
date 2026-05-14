@@ -9,11 +9,13 @@ import com.geomeasure.pro.domain.model.GpsStatus
 import com.geomeasure.pro.domain.repository.MeasurementRepository
 import com.geomeasure.pro.domain.usecase.CalculateAreaUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -146,8 +148,10 @@ class MapViewModel @Inject constructor(
 
     fun saveProject() {
         val project = _uiState.value.currentProject ?: return
-        val (area, perimeter) = calculateArea(_uiState.value.vertices)
         viewModelScope.launch {
+            val (area, perimeter) = withContext(Dispatchers.Default) {
+                calculateArea(_uiState.value.vertices)
+            }
             repository.updateProject(
                 project.copy(
                     areaM2 = area,

@@ -1,7 +1,11 @@
 package com.geomeasure.pro.presentation.screens.map
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +15,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Redo
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -56,6 +62,8 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +75,15 @@ fun MapScreen(
     val context = LocalContext.current
     val scaffoldState: BottomSheetScaffoldState = rememberBottomSheetScaffoldState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    var isFollowing by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(context, "Location permission required for My Location", Toast.LENGTH_LONG).show()
+        }
+    }
 
     LaunchedEffect(projectId) {
         if (projectId != null) {
@@ -101,10 +118,10 @@ fun MapScreen(
                     },
                     actions = {
                         IconButton(onClick = { viewModel.undo() }) {
-                            Icon(Icons.Filled.Undo, "Undo")
+                            Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
                         }
                         IconButton(onClick = { viewModel.redo() }) {
-                            Icon(Icons.Filled.Redo, "Redo")
+                            Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -116,6 +133,7 @@ fun MapScreen(
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                 var mapViewRef by remember { mutableStateOf<MapView?>(null) }
                 var previousVertices by remember { mutableStateOf<List<VertexEntity>?>(null) }
+                var myLocationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
 
                 AndroidView(
                     factory = { ctx ->
@@ -123,7 +141,8 @@ fun MapScreen(
                             mapViewRef = mv
                             mv.setTileSource(TileSourceFactory.MAPNIK)
                             mv.setMultiTouchControls(true)
-                            mv.controller.setZoom(16.0)
+                            mv.controller.setZoom(18.0)
+
                             mv.overlays.add(
                                 MapEventsOverlay(object : MapEventsReceiver {
                                     override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -136,6 +155,21 @@ fun MapScreen(
                                     override fun longPressHelper(p: GeoPoint): Boolean = false
                                 })
                             )
+
+                            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
+                                == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                val provider = GpsMyLocationProvider(ctx)
+                                MyLocationNewOverlay(provider, mv).also { overlay ->
+                                    overlay.enableMyLocation()
+                                    overlay.enableFollowLocation()
+                                    overlay.runOnFirstFix {
+                                        mv.controller.animateTo(overlay.myLocation)
+                                    }
+                                    mv.overlays.add(overlay)
+                                    myLocationOverlay = overlay
+                                }
+                            }
                         }
                     },
                     update = { mv ->
@@ -143,7 +177,7 @@ fun MapScreen(
                         val sorted = uiState.vertices.sortedBy { it.order }
                         if (sorted != previousVertices) {
                             previousVertices = sorted
-                            while (mv.overlays.size > 1) {
+                            while (mv.overlays.size > 1 + if (myLocationOverlay != null) 1 else 0) {
                                 mv.overlays.removeAt(mv.overlays.lastIndex)
                             }
                             sorted.forEach { vertex ->
@@ -169,9 +203,7 @@ fun MapScreen(
                             }
                             if (sorted.size >= 2) {
                                 Polygon().apply {
-                                    points = sorted.map {
-                                        GeoPoint(it.latitude, it.longitude)
-                                    }
+                                    points = sorted.map { GeoPoint(it.latitude, it.longitude) }
                                     fillColor = AndroidColor.argb(75, 33, 150, 243)
                                     strokeColor = AndroidColor.argb(255, 33, 150, 243)
                                     strokeWidth = 3f
@@ -191,19 +223,26 @@ fun MapScreen(
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         when (event) {
-                            Lifecycle.Event.ON_RESUME -> mapViewRef?.onResume()
-                            Lifecycle.Event.ON_PAUSE -> mapViewRef?.onPause()
+                            Lifecycle.Event.ON_RESUME -> {
+                                mapViewRef?.onResume()
+                                myLocationOverlay?.enableMyLocation()
+                            }
+                            Lifecycle.Event.ON_PAUSE -> {
+                                mapViewRef?.onPause()
+                                myLocationOverlay?.disableMyLocation()
+                            }
                             else -> {}
                         }
                     }
                     lifecycleOwner.lifecycle.addObserver(observer)
                     onDispose {
                         lifecycleOwner.lifecycle.removeObserver(observer)
+                        myLocationOverlay?.disableMyLocation()
                         mapViewRef?.onDetach()
                     }
                 }
 
-                if (uiState.showBottomSheet || uiState.gpsStatus.accuracyM > 0) {
+                if (uiState.gpsStatus.accuracyM > 0f) {
                     Column(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -253,6 +292,45 @@ fun MapScreen(
                                 )
                             }
                         }
+                    }
+
+                    FloatingActionButton(
+                        onClick = {
+                            if (ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.ACCESS_FINE_LOCATION
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                return@FloatingActionButton
+                            }
+                            myLocationOverlay?.let { overlay ->
+                                if (overlay.myLocation != null) {
+                                    isFollowing = !isFollowing
+                                    if (isFollowing) {
+                                        overlay.enableFollowLocation()
+                                        mapViewRef?.controller?.animateTo(overlay.myLocation)
+                                    } else {
+                                        overlay.disableFollowLocation()
+                                    }
+                                } else {
+                                    overlay.runOnFirstFix {
+                                        overlay.enableFollowLocation()
+                                        mapViewRef?.controller?.animateTo(overlay.myLocation)
+                                        isFollowing = true
+                                    }
+                                }
+                            }
+                        },
+                        containerColor = if (isFollowing)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isFollowing)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        Icon(Icons.Filled.MyLocation, "My Location")
                     }
 
                     FloatingActionButton(
