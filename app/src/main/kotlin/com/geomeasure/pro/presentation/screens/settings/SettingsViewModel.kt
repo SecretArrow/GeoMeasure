@@ -200,6 +200,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setLanguage(code: String) {
+        viewModelScope.launch { prefs.setLanguage(code) }
+    }
+
+    fun setCoordFormat(format: String) {
+        viewModelScope.launch { prefs.setCoordFormat(format) }
+    }
+
     fun clearMessages() {
         _uiState.update { it.copy(message = null, error = null) }
     }

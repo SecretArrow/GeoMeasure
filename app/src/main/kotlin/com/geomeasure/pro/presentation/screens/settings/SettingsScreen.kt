@@ -63,6 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.geomeasure.pro.core.util.Lang
 import com.geomeasure.pro.core.util.UnitConverter
 import com.geomeasure.pro.data.local.prefs.AppSettings
 
@@ -257,6 +258,71 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     onCheckedChange = { viewModel.setGpsPanel(it) },
                     icon = Icons.Filled.Visibility
                 )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Language",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(Modifier.height(6.dp))
+                var langExpanded by remember { mutableStateOf(false) }
+                OutlinedButton(
+                    onClick = { langExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        Lang.Language.values().find { it.code == settings.language }?.nativeName ?: "English"
+                    )
+                }
+                DropdownMenu(
+                    expanded = langExpanded,
+                    onDismissRequest = { langExpanded = false }
+                ) {
+                    Lang.Language.values().forEach { lang ->
+                        DropdownMenuItem(
+                            text = { Text(lang.nativeName) },
+                            onClick = {
+                                viewModel.setLanguage(lang.code)
+                                langExpanded = false
+                            }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Coordinate Format",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(Modifier.height(6.dp))
+                var coordExpanded by remember { mutableStateOf(false) }
+                OutlinedButton(
+                    onClick = { coordExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        if (settings.coordFormat == "dms") "DMS (Deg° Min' Sec\")" else "Decimal (DD)"
+                    )
+                }
+                DropdownMenu(
+                    expanded = coordExpanded,
+                    onDismissRequest = { coordExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Decimal (DD)") },
+                        onClick = {
+                            viewModel.setCoordFormat("dd")
+                            coordExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("DMS (Deg° Min' Sec\")") },
+                        onClick = {
+                            viewModel.setCoordFormat("dms")
+                            coordExpanded = false
+                        }
+                    )
+                }
             }
         }
 

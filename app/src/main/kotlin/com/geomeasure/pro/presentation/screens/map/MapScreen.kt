@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
@@ -83,13 +84,15 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.ScaleBarOverlay
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     viewModel: MapViewModel = hiltViewModel(),
-    projectId: String? = null
+    projectId: String? = null,
+    lang: String = "en"
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -277,6 +280,15 @@ fun MapScreen(
                             mv.setMultiTouchControls(true)
                             mv.controller.setZoom(18.0)
 
+                            val scaleBar = ScaleBarOverlay(mv).apply {
+                                setAlignBottom(true)
+                                setAlignRight(true)
+                                setScaleBarOffset(20, 40)
+                                enableScaleBar()
+                                setTextSize(24f)
+                            }
+                            mv.overlays.add(0, scaleBar)
+
                             mv.overlays.add(
                                 MapEventsOverlay(object : MapEventsReceiver {
                                     override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -311,15 +323,17 @@ fun MapScreen(
                         val sorted = uiState.vertices.sortedBy { it.order }
                         if (sorted != previousVertices) {
                             previousVertices = sorted
-                            while (mv.overlays.size > 1 + if (myLocationOverlay != null) 1 else 0) {
+                            while (mv.overlays.size > 2 + if (myLocationOverlay != null) 1 else 0) {
                                 mv.overlays.removeAt(mv.overlays.lastIndex)
                             }
-                            sorted.forEach { vertex ->
+                            sorted.forEachIndexed { index, vertex ->
+                                val label = "P${index + 1}"
                                 Marker(mv).apply {
                                     position = GeoPoint(vertex.latitude, vertex.longitude)
                                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                     isDraggable = true
-                                    title = "${vertex.order + 1}"
+                                    title = "$label: ${vertex.latitude.formatDecimals(6)}, ${vertex.longitude.formatDecimals(6)}"
+                                    icon = BitmapDrawable(context.resources, createTextIcon(label))
                                     setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
                                         override fun onMarkerDragStart(marker: Marker) {}
                                         override fun onMarkerDrag(marker: Marker) {}
@@ -502,4 +516,34 @@ fun MapScreen(
             }
         }
     }
+}
+
+private fun createTextIcon(text: String): Bitmap {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.WHITE
+        textSize = 36f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.parseColor("#1565C0")
+        style = Paint.Style.FILL
+    }
+    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+    }
+    val textWidth = paint.measureText(text)
+    val textHeight = paint.descent() - paint.ascent()
+    val padding = 20f
+    val w = (textWidth + padding * 2).toInt()
+    val h = (textHeight + padding * 2).toInt()
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    val r = 8f
+    canvas.drawRoundRect(0f, 0f, w.toFloat(), h.toFloat(), r, r, bgPaint)
+    canvas.drawRoundRect(0f, 0f, w.toFloat(), h.toFloat(), r, r, strokePaint)
+    canvas.drawText(text, w / 2f, h / 2f - (paint.ascent() + paint.descent()) / 2f, paint)
+    return bmp
 }

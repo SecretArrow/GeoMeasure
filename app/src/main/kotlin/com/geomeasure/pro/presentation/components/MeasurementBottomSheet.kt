@@ -31,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.geomeasure.pro.core.geometry.CoordinateFormatter
+import com.geomeasure.pro.core.geometry.GeoPoint
 import com.geomeasure.pro.core.util.UnitConverter
 import com.geomeasure.pro.core.util.formatDecimals
 import com.geomeasure.pro.data.export.GeoJsonExporter
@@ -174,6 +176,202 @@ fun MeasurementBottomSheet(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(20.dp))
+            Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "DMS Coordinates",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+        itemsIndexed(sortedVertices) { index, vertex ->
+            val latDms = CoordinateFormatter.formatDms(vertex.latitude, true)
+            val lonDms = CoordinateFormatter.formatDms(vertex.longitude, false)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "${index + 1}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(24.dp)
+                )
+                Text(
+                    latDms,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    lonDms,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        if (sortedVertices.size >= 2) {
+            item {
+                Spacer(Modifier.height(20.dp))
+                Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Bearing & Distance",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+            itemsIndexed(sortedVertices.dropLast(1)) { index, vertex ->
+                val next = sortedVertices[index + 1]
+                val bearing = CoordinateFormatter.bearingBetween(
+                    vertex.latitude, vertex.longitude,
+                    next.latitude, next.longitude
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "${index + 1} → ${index + 2}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(56.dp)
+                    )
+                    Text(
+                        bearing.bearingLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "${bearing.azimuthDeg.formatDecimals(1)}°",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "${bearing.distanceM.formatDecimals(1)} m",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        if (sortedVertices.size >= 3) {
+            item {
+                Spacer(Modifier.height(20.dp))
+                Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Interior Angles",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+            itemsIndexed(sortedVertices.drop(1).dropLast(1)) { index, vertex ->
+                val i = index + 1
+                val prev = sortedVertices[i - 1]
+                val next = sortedVertices[i + 1]
+                val angle = CoordinateFormatter.interiorAngle(
+                    prev.latitude, prev.longitude,
+                    vertex.latitude, vertex.longitude,
+                    next.latitude, next.longitude
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "V${i + 1}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(32.dp)
+                    )
+                    Text(
+                        "${angle.interiorDeg.formatDecimals(1)}°",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        angle.turnDirection,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(20.dp))
+            Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Coordinate Table",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("#", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(20.dp))
+                Text("Latitude (DMS)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Text("Longitude (DMS)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Text("Bearing", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.8f))
+                Text("Distance", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.8f))
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+        itemsIndexed(sortedVertices) { index, vertex ->
+            val latDms = CoordinateFormatter.formatDms(vertex.latitude, true)
+            val lonDms = CoordinateFormatter.formatDms(vertex.longitude, false)
+            val bearingStr = if (index < sortedVertices.lastIndex) {
+                val next = sortedVertices[index + 1]
+                val b = CoordinateFormatter.bearingBetween(
+                    vertex.latitude, vertex.longitude,
+                    next.latitude, next.longitude
+                )
+                b.bearingLabel
+            } else ""
+            val distStr = if (index < sortedVertices.lastIndex) {
+                val next = sortedVertices[index + 1]
+                val b = CoordinateFormatter.bearingBetween(
+                    vertex.latitude, vertex.longitude,
+                    next.latitude, next.longitude
+                )
+                "${b.distanceM.formatDecimals(1)} m"
+            } else ""
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("${index + 1}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(20.dp))
+                Text(latDms, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
+                Text(lonDms, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
+                Text(bearingStr, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(0.8f))
+                Text(distStr, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(0.8f))
             }
         }
 

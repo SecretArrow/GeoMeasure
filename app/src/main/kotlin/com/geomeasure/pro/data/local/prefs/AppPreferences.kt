@@ -25,6 +25,8 @@ data class AppSettings(
     val darkMode: Boolean = false,
     val dynamicColor: Boolean = true,
     val showGpsPanel: Boolean = true,
+    val language: String = "en",
+    val coordFormat: String = "dd",
     val defaultAreaUnit: UnitConverter.AreaUnit = UnitConverter.AreaUnit.SQUARE_METRE,
     val defaultDistanceUnit: UnitConverter.DistanceUnit = UnitConverter.DistanceUnit.METRE,
     val decimalPlaces: Int = 4,
@@ -52,6 +54,8 @@ class AppPreferences @Inject constructor(
         val GPS_INTERVAL_SEC = intPreferencesKey("gps_interval_sec")
         val TILE_SOURCE = stringPreferencesKey("tile_source")
         val CACHE_SIZE_MB = intPreferencesKey("cache_size_mb")
+        val LANGUAGE = stringPreferencesKey("language")
+        val COORD_FORMAT = stringPreferencesKey("coord_format")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -70,7 +74,9 @@ class AppPreferences @Inject constructor(
             gpsMinDistance = prefs[Keys.GPS_MIN_DISTANCE] ?: 1f,
             gpsIntervalSec = (prefs[Keys.GPS_INTERVAL_SEC] ?: 1).toLong(),
             tileSource = prefs[Keys.TILE_SOURCE] ?: "MAPNIK",
-            cacheSizeMb = prefs[Keys.CACHE_SIZE_MB] ?: 256
+            cacheSizeMb = prefs[Keys.CACHE_SIZE_MB] ?: 256,
+            language = prefs[Keys.LANGUAGE] ?: "en",
+            coordFormat = prefs[Keys.COORD_FORMAT] ?: "dd"
         )
     }
 
@@ -92,7 +98,9 @@ class AppPreferences @Inject constructor(
                 gpsIntervalMs = (prefs[Keys.GPS_INTERVAL_SEC] ?: 1) * 1000L,
                 gpsIntervalSec = (prefs[Keys.GPS_INTERVAL_SEC] ?: 1).toLong(),
                 tileSource = prefs[Keys.TILE_SOURCE] ?: "MAPNIK",
-                cacheSizeMb = prefs[Keys.CACHE_SIZE_MB] ?: 256
+                cacheSizeMb = prefs[Keys.CACHE_SIZE_MB] ?: 256,
+            language = prefs[Keys.LANGUAGE] ?: "en",
+            coordFormat = prefs[Keys.COORD_FORMAT] ?: "dd"
             )
         }.first()
     }
@@ -139,5 +147,13 @@ class AppPreferences @Inject constructor(
 
     suspend fun setCacheSizeMb(size: Int) {
         context.dataStore.edit { it[Keys.CACHE_SIZE_MB] = size }
+    }
+
+    suspend fun setLanguage(code: String) {
+        context.dataStore.edit { it[Keys.LANGUAGE] = code }
+    }
+
+    suspend fun setCoordFormat(format: String) {
+        context.dataStore.edit { it[Keys.COORD_FORMAT] = format }
     }
 }
