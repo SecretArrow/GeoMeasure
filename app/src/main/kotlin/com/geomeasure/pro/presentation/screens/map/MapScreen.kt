@@ -1,8 +1,18 @@
 package com.geomeasure.pro.presentation.screens.map
 
 import android.Manifest
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,6 +65,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.geomeasure.pro.data.local.db.entities.VertexEntity
 import com.geomeasure.pro.presentation.components.GpsStatusPanel
 import com.geomeasure.pro.presentation.components.MeasurementBottomSheet
+import com.geomeasure.pro.core.util.formatDecimals
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -75,6 +86,8 @@ fun MapScreen(
     val context = LocalContext.current
     val scaffoldState: BottomSheetScaffoldState = rememberBottomSheetScaffoldState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    var permissionLaunched by remember { mutableStateOf(false) }
+    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
     var isFollowing by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -102,7 +115,73 @@ fun MapScreen(
                 perimeterM = uiState.perimeterM,
                 vertices = uiState.vertices,
                 project = uiState.currentProject,
-                expanded = true
+                expanded = true,
+                onShareScreenshot = {
+                    val mv = mapViewRef ?: return@MeasurementBottomSheet
+                    val project = uiState.currentProject ?: return@MeasurementBottomSheet
+                    try {
+                        val bmp = Bitmap.createBitmap(mv.width, mv.height, Bitmap.Config.ARGB_8888)
+                        val canvas = Canvas(bmp)
+                        mv.draw(canvas)
+
+                        val paint = Paint().apply {
+                            color = AndroidColor.BLACK
+                            textSize = 40f
+                            isAntiAlias = true
+                            typeface = Typeface.DEFAULT_BOLD
+                        }
+                        val whiteBg = Paint().apply {
+                            color = AndroidColor.argb(180, 255, 255, 255)
+                            style = Paint.Style.FILL
+                        }
+                        val lineHeight = 50f
+                        val margin = 20f
+                        val lines = mutableListOf<String>()
+                        lines.add(project.name)
+                        lines.add("Area: ${uiState.areaM2.formatDecimals(2)} m2")
+                        lines.add("Perimeter: ${uiState.perimeterM.formatDecimals(2)} m")
+                        lines.add("Vertices: ${uiState.vertices.size}")
+                        uiState.vertices.sortedBy { it.order }.forEachIndexed { i, v ->
+                            lines.add("${i+1}. ${v.latitude.formatDecimals(6)}, ${v.longitude.formatDecimals(6)}")
+                        }
+
+                        val textHeight = lines.size * lineHeight + 40
+                        canvas.drawRect(0f, 0f, bmp.width.toFloat(), textHeight, whiteBg)
+                        var y = 50f
+                        lines.forEach { line ->
+                            if (line == lines.first()) {
+                                paint.textSize = 48f
+                                paint.typeface = Typeface.DEFAULT_BOLD
+                            } else {
+                                paint.textSize = 36f
+                                paint.typeface = Typeface.DEFAULT
+                            }
+                            canvas.drawText(line, margin, y, paint)
+                            y += lineHeight
+                        }
+
+                        val file = java.io.File(context.cacheDir, "screenshots")
+                        file.mkdirs()
+                        val imageFile = java.io.File(file, "${project.name}.png")
+                        imageFile.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                        bmp.recycle()
+
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            imageFile
+                        )
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "image/png"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            putExtra(Intent.EXTRA_TEXT, "${project.name} - Area: ${uiState.areaM2.formatDecimals(2)} m2")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Share Screenshot"))
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Screenshot failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             )
         }
     ) { padding ->
@@ -131,7 +210,6 @@ fun MapScreen(
             }
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                var mapViewRef by remember { mutableStateOf<MapView?>(null) }
                 var previousVertices by remember { mutableStateOf<List<VertexEntity>?>(null) }
                 var myLocationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
 

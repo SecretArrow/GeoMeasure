@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -35,7 +37,8 @@ fun MeasurementBottomSheet(
     perimeterM: Double,
     vertices: List<VertexEntity>,
     project: ProjectEntity? = null,
-    expanded: Boolean
+    expanded: Boolean,
+    onShareScreenshot: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sortedVertices = remember(vertices) { vertices.sortedBy { it.order } }
@@ -126,7 +129,7 @@ fun MeasurementBottomSheet(
                 Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
                         onClick = {
@@ -153,31 +156,39 @@ fun MeasurementBottomSheet(
                     ) {
                         Text("Export GeoJSON")
                     }
-                    Spacer(Modifier.width(8.dp))
                     OutlinedButton(
-                        onClick = {
-                            if (project != null) {
-                                val shareText = buildString {
-                                    appendLine("${project.name}")
-                                    appendLine("Area: ${areaM2.formatDecimals(2)} m2")
-                                    appendLine("Perimeter: ${perimeterM.formatDecimals(2)} m")
-                                    appendLine("Vertices: ${vertices.size}")
-                                    sortedVertices.forEachIndexed { i, v ->
-                                        appendLine("${i + 1}. ${v.latitude.formatDecimals(6)}, ${v.longitude.formatDecimals(6)}")
-                                    }
-                                }
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Share"))
-                            }
-                        },
+                        onClick = onShareScreenshot,
                         modifier = Modifier.weight(1f),
                         enabled = project != null
                     ) {
-                        Text("Share Text")
+                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                        Text("Screenshot")
                     }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        if (project != null) {
+                            val shareText = buildString {
+                                appendLine("${project.name}")
+                                appendLine("Area: ${areaM2.formatDecimals(2)} m2")
+                                appendLine("Perimeter: ${perimeterM.formatDecimals(2)} m")
+                                appendLine("Vertices: ${vertices.size}")
+                                sortedVertices.forEachIndexed { i, v ->
+                                    appendLine("${i + 1}. ${v.latitude.formatDecimals(6)}, ${v.longitude.formatDecimals(6)}")
+                                }
+                            }
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share"))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = project != null
+                ) {
+                    Text("Share Text")
                 }
             }
         }
