@@ -171,10 +171,21 @@ fun MapScreen(
                             "${context.packageName}.fileprovider",
                             imageFile
                         )
+                        val shareText = buildString {
+                            appendLine(project.name)
+                            appendLine("Area: ${uiState.areaM2.formatDecimals(2)} m2  |  Perimeter: ${uiState.perimeterM.formatDecimals(2)} m")
+                            appendLine("Vertices: ${uiState.vertices.size} titik")
+                            appendLine("")
+                            uiState.vertices.sortedBy { it.order }.forEachIndexed { i, v ->
+                                appendLine("${i + 1}. ${v.latitude.formatDecimals(6)}, ${v.longitude.formatDecimals(6)}")
+                            }
+                            appendLine("")
+                            appendLine("GeoMeasure Pro — offline, private, free")
+                        }
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "image/png"
                             putExtra(Intent.EXTRA_STREAM, uri)
-                            putExtra(Intent.EXTRA_TEXT, "${project.name} - Area: ${uiState.areaM2.formatDecimals(2)} m2")
+                            putExtra(Intent.EXTRA_TEXT, shareText.toString())
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         context.startActivity(Intent.createChooser(intent, "Share Screenshot"))
