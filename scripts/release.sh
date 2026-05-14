@@ -2,16 +2,16 @@
 # =============================================================================
 # GeoMeasure Pro - GitHub Release Script
 # =============================================================================
-# Creates a GitHub release with the built APK files.
+# Creates a GitHub release with signed APK uploads.
 #
 # Usage:
-#   ./scripts/release.sh v1.0.0 "Release title" "Release notes..."
+#   ./scripts/release.sh v1.0.0 "Release title"
 #
 # Prerequisites:
 #   - gh (GitHub CLI) installed
-#   - GITHUB_TOKEN environment variable set, OR run gh auth login first
 #   - APKs already built via ./scripts/build.sh
 #
+# Tag format: v1.0.0, v1.0.1, etc.
 # For Windows, use release.bat instead.
 # =============================================================================
 
@@ -26,14 +26,13 @@ APK_DIR="$PROJECT_DIR/app/build/outputs/apk/release"
 # -------------------------------------------------
 TAG="${1:-}"
 TITLE="${2:-GeoMeasure Pro Release}"
-NOTES="${3:-}"
 
 if [ -z "$TAG" ]; then
-    echo "Usage: $0 <tag> [title] [notes]"
+    echo "Usage: $0 <tag> [title]"
     echo ""
     echo "Examples:"
     echo "  $0 v1.0.0"
-    echo "  $0 v1.0.0 \"GeoMeasure Pro v1.0.0\" \"Release notes here...\""
+    echo "  $0 v1.0.0 \"GeoMeasure Pro v1.0.0\""
     exit 1
 fi
 
@@ -45,7 +44,6 @@ echo " GeoMeasure Pro - GitHub Release"
 echo "============================================"
 echo ""
 
-# Check gh CLI
 if ! command -v gh &>/dev/null; then
     echo " ERROR: GitHub CLI (gh) not found."
     echo " Install it from: https://cli.github.com/"
@@ -63,7 +61,6 @@ if ! command -v gh &>/dev/null; then
     exit 1
 fi
 
-# Check authentication
 if ! gh auth status &>/dev/null; then
     echo " ERROR: Not authenticated with GitHub."
     echo " Run: gh auth login"
@@ -74,22 +71,26 @@ fi
 echo " Authenticated as: $(gh api user --jq .login 2>/dev/null || echo 'unknown')"
 echo ""
 
-# Check APK files
+# -------------------------------------------------
+# Find signed APK files
+# -------------------------------------------------
 APK_FILES=()
-for arch in arm64-v8a armeabi-v7a x86 x86_64; do
-    apk="$APK_DIR/app-${arch}-release.apk"
-    if [ -f "$apk" ]; then
+while IFS= read -r -d '' apk; do
+    name=$(basename "$apk")
+    # Only include signed APKs (no "unsigned" in name)
+    if [[ "$name" != *"unsigned"* ]]; then
         APK_FILES+=("$apk")
     fi
-done
+done < <(find "$APK_DIR" -maxdepth 1 -name 'GeoMeasure-Pro-*.apk' -print0 2>/dev/null)
 
 if [ ${#APK_FILES[@]} -eq 0 ]; then
-    echo " ERROR: No APK files found at $APK_DIR"
+    echo " ERROR: No signed APK files found at $APK_DIR"
+    echo " Expected files like: GeoMeasure-Pro-arm64-v8a.apk"
     echo " Run ./scripts/build.sh first."
     exit 1
 fi
 
-echo " Found ${#APK_FILES[@]} APK files to upload:"
+echo " Found ${#APK_FILES[@]} signed APK(s) to upload:"
 for apk in "${APK_FILES[@]}"; do
     echo "  - $(basename "$apk") ($(du -h "$apk" | cut -f1))"
 done
@@ -101,36 +102,14 @@ echo ""
 echo " Creating release: $TAG"
 echo ""
 
-if [ -z "$NOTES" ]; then
-    # Generate default notes
-    NOTES="## GeoMeasure Pro $TAG
-
-Precision Land Measurement — Offline, Private, Free.
-
-### Features
-- OSMDroid offline map engine with tap-to-measure
-- GPS walk-to-measure with foreground service
-- Area & perimeter calculation (spherical + haversine)
-- 7 area units × 5 distance units
-- Encrypted SQLCipher database + Android KeyStore
-- Export: GeoJSON, KML, GPX, CSV, PDF
-- Import: KML, GeoJSON, GPX
-- Google Drive sync (optional)
-- Material You dynamic theme
-- 82 unit tests (all passing)
-"
-fi
-
-# Build asset arguments
 ASSET_ARGS=()
 for apk in "${APK_FILES[@]}"; do
-    name=$(basename "$apk" | sed 's/app-/GeoMeasure-Pro-/; s/-release//')
+    name=$(basename "$apk")
     ASSET_ARGS+=("${apk}#${name}")
 done
 
 gh release create "$TAG" \
     --title "$TITLE" \
-    --notes "$NOTES" \
     "${ASSET_ARGS[@]}"
 
 echo ""

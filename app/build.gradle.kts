@@ -7,6 +7,29 @@ plugins {
 
 import java.util.Properties
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+fun loadEnvFile(projectRoot: File): Properties {
+    val props = Properties()
+    val envFile = File(projectRoot, ".env")
+    if (envFile.exists()) {
+        envFile.readLines().forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
+                val eq = trimmed.indexOf('=')
+                if (eq > 0) {
+                    val key = trimmed.substring(0, eq).trim()
+                    val value = trimmed.substring(eq + 1).trim().removeSurrounding("\"")
+                    props[key] = value
+                }
+            }
+        }
+    }
+    return props
+}
+
 android {
     namespace = "com.geomeasure.pro"
     compileSdk = 35
@@ -20,10 +43,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
-
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas")
-        }
     }
 
     splits {
@@ -37,23 +56,18 @@ android {
 
     signingConfigs {
         create("release") {
-            fun readProperty(key: String): String? {
-                val env = System.getenv("GM_${key.uppercase().replace('.', '_')}")
-                if (env != null) return env
-                val propsFile = rootProject.file("signing.properties")
-                if (propsFile.exists()) {
-                    val props = Properties().apply { load(propsFile.inputStream()) }
-                    return props.getProperty(key)
-                }
-                return null
-            }
+            val env = loadEnvFile(rootProject.projectDir)
 
-            val ksPath = readProperty("keystore.path")
-            if (ksPath != null) {
+            fun prop(key: String): String? =
+                System.getenv("GM_${key.uppercase().replace('.', '_')}")
+                    ?: env.getProperty(key)
+
+            val ksPath = prop("keystore_path")
+            if (ksPath != null && file(ksPath).exists()) {
                 storeFile = file(ksPath)
-                storePassword = readProperty("keystore.password") ?: ""
-                keyAlias = readProperty("key.alias") ?: ""
-                keyPassword = readProperty("key.password") ?: ""
+                storePassword = prop("keystore_password") ?: ""
+                keyAlias = prop("key_alias") ?: ""
+                keyPassword = prop("key_password") ?: ""
             }
         }
     }

@@ -1,30 +1,21 @@
 #!/bin/bash
-# =============================================================================
-# GeoMeasure Pro - Build Script
-# =============================================================================
-# Builds release APKs split per ABI (armeabi-v7a, arm64-v8a, x86, x86_64).
-#
-# Usage:
-#   ./scripts/build.sh
-#
-# Prerequisites: Run ./scripts/install.sh first.
-#
-# For Windows, use build.bat instead.
-# =============================================================================
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Locate Gradle
-GRADLE_DIR="$HOME/gradle-8.5"
+GRADLE_DIR="${GRADLE_DIR:-$PROJECT_DIR/../gradle-8.5}"
+# Also check common locations
 if [ ! -f "$GRADLE_DIR/bin/gradle" ]; then
-    # Fall back to system gradle
+    GRADLE_DIR="$HOME/gradle-8.5"
+fi
+if [ ! -f "$GRADLE_DIR/bin/gradle" ]; then
+    GRADLE_DIR="/opt/gradle-8.5"
+fi
+if [ ! -f "$GRADLE_DIR/bin/gradle" ]; then
     GRADLE_DIR=""
 fi
 
-# Locate Android SDK
 ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 if [ ! -d "$ANDROID_HOME" ]; then
     echo "ERROR: Android SDK not found at $ANDROID_HOME"
@@ -36,6 +27,15 @@ export ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
 
+SIGNED=false
+ENV_FILE="$PROJECT_DIR/.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    source "$ENV_FILE"
+    set +a
+    SIGNED=true
+fi
+
 echo "============================================"
 echo " GeoMeasure Pro - Building Release APKs"
 echo "============================================"
@@ -43,6 +43,7 @@ echo ""
 echo "  Project: $PROJECT_DIR"
 echo "  SDK:     $ANDROID_HOME"
 echo "  Gradle:  ${GRADLE_DIR:-$HOME/gradle-8.5}"
+echo "  Signing: $([ "$SIGNED" = true ] && echo "enabled" || echo "disabled")"
 echo ""
 
 BUILD_TIME_START=$(date +%s)
@@ -63,9 +64,21 @@ echo "============================================"
 echo " Build completed in ${BUILD_DURATION}s"
 echo "============================================"
 
-# List APK outputs
 APK_DIR="$PROJECT_DIR/app/build/outputs/apk/release"
 if [ -d "$APK_DIR" ]; then
+    # Rename all APKs to GeoMeasure-Pro naming scheme
+    for apk in "$APK_DIR"/app-*-release.apk; do
+        [ -f "$apk" ] || continue
+        base=$(basename "$apk" .apk)
+        arch="${base#app-}"
+        arch="${arch%-release}"
+        if [ "$SIGNED" = true ]; then
+            mv "$apk" "$APK_DIR/GeoMeasure-Pro-$arch.apk"
+        else
+            mv "$apk" "$APK_DIR/GeoMeasure-Pro-unsigned-$arch.apk"
+        fi
+    done
+
     echo ""
     echo " APK files:"
     for apk in "$APK_DIR"/*.apk; do
@@ -73,6 +86,9 @@ if [ -d "$APK_DIR" ]; then
         name=$(basename "$apk")
         echo "  - $name  ($size)"
     done
+
+    echo ""
+    echo " Signing status: $([ "$SIGNED" = true ] && echo "signed" || echo "unsigned")"
 else
     echo " ERROR: No APK outputs found."
     exit 1

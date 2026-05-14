@@ -2,16 +2,16 @@
 REM =============================================================================
 REM GeoMeasure Pro - GitHub Release Script (Windows)
 REM =============================================================================
-REM Creates a GitHub release with the built APK files.
+REM Creates a GitHub release with signed APK uploads.
 REM
 REM Usage:
-REM   scripts\release.bat v1.0.0 "Release title" "Release notes..."
+REM   scripts\release.bat v1.0.0 "Release title"
 REM
 REM Prerequisites:
-REM   - gh (GitHub CLI) installed and authenticated
-REM     (https://cli.github.com/)
+REM   - gh (GitHub CLI) installed and authenticated (https://cli.github.com/)
 REM   - APKs already built via scripts\build.bat
 REM
+REM Tag format: v1.0.0, v1.0.1, etc.
 REM For Linux, use release.sh instead.
 REM =============================================================================
 
@@ -22,14 +22,13 @@ set APK_DIR=%PROJECT_DIR%\app\build\outputs\apk\release
 
 set TAG=%1
 set TITLE=%2
-set NOTES=%3
 
 if "%TAG%"=="" (
-    echo Usage: %0 ^<tag^> [title] [notes]
+    echo Usage: %0 ^<tag^> [title]
     echo.
     echo Examples:
     echo   %0 v1.0.0
-    echo   %0 v1.0.0 "GeoMeasure Pro v1.0.0" "Release notes here..."
+    echo   %0 v1.0.0 "GeoMeasure Pro v1.0.0"
     exit /b 1
 )
 
@@ -60,28 +59,28 @@ echo  Authenticated as:
 gh api user --jq .login 2>nul
 echo.
 
-REM Check APK files
+REM Find signed APK files (exclude "unsigned" variants)
 set APK_COUNT=0
-if exist "%APK_DIR%\app-arm64-v8a-release.apk" set /a APK_COUNT+=1
-if exist "%APK_DIR%\app-armeabi-v7a-release.apk" set /a APK_COUNT+=1
-if exist "%APK_DIR%\app-x86-release.apk" set /a APK_COUNT+=1
-if exist "%APK_DIR%\app-x86_64-release.apk" set /a APK_COUNT+=1
+set ASSETS=
+for %%f in ("%APK_DIR%\GeoMeasure-Pro-*.apk") do (
+    set "FNAME=%%~nxf"
+    REM Skip unsigned APKs
+    echo !FNAME! | findstr /C:"unsigned" >nul
+    if !errorlevel! neq 0 (
+        set /a APK_COUNT+=1
+        set ASSETS=!ASSETS! "%%f#%%~nxf"
+    )
+)
 
 if %APK_COUNT% equ 0 (
-    echo ERROR: No APK files found at %APK_DIR%
+    echo ERROR: No signed APK files found at %APK_DIR%
+    echo Expected files like: GeoMeasure-Pro-arm64-v8a.apk
     echo Run scripts\build.bat first.
     exit /b 1
 )
 
-echo  Found %APK_COUNT% APK files to upload.
+echo  Found %APK_COUNT% signed APK(s) to upload.
 echo.
-
-REM Build asset arguments
-set ASSETS=
-if exist "%APK_DIR%\app-arm64-v8a-release.apk" set ASSETS=%ASSETS% "%APK_DIR%\app-arm64-v8a-release.apk#GeoMeasure-Pro-arm64-v8a"
-if exist "%APK_DIR%\app-armeabi-v7a-release.apk" set ASSETS=%ASSETS% "%APK_DIR%\app-armeabi-v7a-release.apk#GeoMeasure-Pro-armeabi-v7a"
-if exist "%APK_DIR%\app-x86-release.apk" set ASSETS=%ASSETS% "%APK_DIR%\app-x86-release.apk#GeoMeasure-Pro-x86"
-if exist "%APK_DIR%\app-x86_64-release.apk" set ASSETS=%ASSETS% "%APK_DIR%\app-x86_64-release.apk#GeoMeasure-Pro-x86_64"
 
 REM Create release
 echo  Creating release: %TAG%
@@ -101,4 +100,3 @@ echo  View at: https://github.com/SecretArrow/GeoMeasure/releases/tag/%TAG%
 echo ============================================
 
 endlocal
-pause

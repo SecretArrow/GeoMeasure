@@ -27,7 +27,8 @@ Thumbs.db
 # Logs
 *.log
 
-# Signing
+# Signing & secrets
+.env
 signing.properties
 *.keystore
 *.jks
