@@ -8,10 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.geomeasure.pro.data.local.db.AppDatabase
 import com.geomeasure.pro.data.local.db.entities.ProjectEntity
 import com.geomeasure.pro.data.local.db.entities.VertexEntity
+import com.geomeasure.pro.data.export.ShapefileExporter
 import com.geomeasure.pro.domain.usecase.ExportProjectUseCase
 import com.geomeasure.pro.domain.usecase.ImportFileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -39,6 +42,7 @@ class ExportViewModel @Inject constructor(
     application: Application,
     private val exportProject: ExportProjectUseCase,
     private val importFile: ImportFileUseCase,
+    private val shapefileExporter: ShapefileExporter,
     private val db: AppDatabase
 ) : AndroidViewModel(application) {
 
@@ -82,6 +86,14 @@ class ExportViewModel @Inject constructor(
 
     fun exportPdf() {
         exportFormat(ExportFormat.PDF)
+    }
+
+    fun exportSHP(projectId: String): File? {
+        val project = runBlocking { db.projectDao().getProjectById(projectId) } ?: return null
+        val vertices = runBlocking { db.vertexDao().getVerticesForProject(projectId) }
+        val ctx = getApplication<Application>()
+        val (shpFile, _, _) = shapefileExporter.export(project, vertices, ctx)
+        return shpFile
     }
 
     private fun exportFormat(format: ExportFormat) {

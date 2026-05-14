@@ -149,7 +149,30 @@ fun ToolsScreen(
                         ) {
                             Text("Export PDF Report")
                         }
-                    }
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                val project = uiState.selectedProject ?: return@Button
+                                val shpFile = viewModel.exportSHP(project.id)
+                                if (shpFile != null) {
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        shpFile
+                                    )
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "application/octet-stream"
+                                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(intent, "Export SHP"))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isExporting && uiState.selectedProject != null
+                        ) {
+                            Text("Export SHP (Shapefile)")
+                        }
 
                     if (uiState.exportedFile != null) {
                         Spacer(Modifier.height(8.dp))
@@ -175,6 +198,7 @@ fun ToolsScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Import File")
+                        }
                     }
                 }
             }

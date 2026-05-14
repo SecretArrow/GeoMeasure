@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.geomeasure.pro.core.geometry.CoordinateFormatter
 import com.geomeasure.pro.core.geometry.GeoPoint
+import com.geomeasure.pro.core.geometry.UtmProjection
 import com.geomeasure.pro.core.util.UnitConverter
 import com.geomeasure.pro.core.util.formatDecimals
 import com.geomeasure.pro.data.export.GeoJsonExporter
@@ -216,6 +217,54 @@ fun MeasurementBottomSheet(
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(20.dp))
+            Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "UTM Coordinates",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+        itemsIndexed(sortedVertices) { index, vertex ->
+            val (easting, northing, zone) = UtmProjection.toUtm(vertex.latitude, vertex.longitude)
+            val hemi = if (vertex.latitude < 0) "S" else "N"
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "${index + 1}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(24.dp)
+                )
+                Text(
+                    "${"%.2f".format(easting)} E",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "${"%.2f".format(northing)} N",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "Zone ${zone}${hemi}",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(0.8f)
                 )
             }
         }

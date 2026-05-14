@@ -10,8 +10,9 @@ import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.Charset
+import javax.inject.Inject
 
-class ShapefileExporter {
+class ShapefileExporter @Inject constructor() {
 
     fun export(
         project: ProjectEntity,
