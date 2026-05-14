@@ -44,6 +44,10 @@ GeoMeasure Pro is a **professional-grade land measurement application** built fo
 - **Tile download** — Download regions by bounding box for offline use
 - **MBTiles / .map import** — Pre-built offline map support
 - **Satellite / hybrid overlay** (configurable tile source)
+- **Scale bar** — Visual distance reference overlay
+- **My Location** — Real-time blue dot with follow-me mode
+- **Point labels** — P1, P2, P3... markers with info windows
+- **Vertex markers** — Draggable, with order labels
 
 ### 📏 Measurement
 - **Tap-to-Measure** — Tap map to place vertices, auto-close polygon
@@ -54,10 +58,16 @@ GeoMeasure Pro is a **professional-grade land measurement application** built fo
 - **Geometry editing** — Drag vertices, undo/redo, delete points
 - **Snap-to-grid** (1/10/100m)
 
-### 🔢 Unit Conversion
+### 🔢 Unit Conversion & Coordinate Formats
 - **7 area units**: m², hectare, are, acre, km², ft², yd²
 - **5 distance units**: m, km, mile, yard, foot
 - Real-time conversion with formatted output
+- **DMS format** (Degrees° Minutes' Seconds") — standard BPN Indonesia
+- **Decimal Degrees (DD)** — standard digital format
+- **UTM projection** — WGS-84 → UTM easting/northing/zone
+- **TM-3 projection** — Indonesian local projection (BPN standard)
+- **Bearing & Azimuth** — Direction between vertices (N 45° E, etc.)
+- **Interior angles** — Left/Right turn at each vertex
 
 ### 🗄️ Data & Privacy
 - **SQLCipher encrypted database** — All data encrypted at rest
@@ -74,6 +84,7 @@ GeoMeasure Pro is a **professional-grade land measurement application** built fo
 | **GPX** | ✅ Waypoints + Track | ✅ |
 | **CSV** | ✅ Vertex table + Summary | ❌ |
 | **PDF** | ✅ iTextG report with map screenshot | ❌ |
+| **SHP** | ✅ ESRI Shapefile (.shp+.shx+.dbf) | ❌ |
 | **Screenshot** | ✅ Map image with coordinate overlay (PNG) | ❌ |
 
 ### ☁️ Google Drive Sync (Optional)
