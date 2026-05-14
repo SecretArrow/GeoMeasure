@@ -16,28 +16,36 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -52,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -109,6 +118,25 @@ fun MapScreen(
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 100.dp,
+        sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        sheetContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        sheetShadowElevation = 8.dp,
+        sheetDragHandle = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                )
+            }
+        },
         sheetContent = {
             MeasurementBottomSheet(
                 areaM2 = uiState.areaM2,
@@ -207,15 +235,32 @@ fun MapScreen(
                         )
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.undo() }) {
-                            Icon(Icons.AutoMirrored.Filled.Undo, "Undo")
+                        SmallFloatingActionButton(
+                            onClick = { viewModel.undo() },
+                            shape = RoundedCornerShape(12.dp),
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Undo,
+                                "Undo",
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
-                        IconButton(onClick = { viewModel.redo() }) {
-                            Icon(Icons.AutoMirrored.Filled.Redo, "Redo")
+                        SmallFloatingActionButton(
+                            onClick = { viewModel.redo() },
+                            shape = RoundedCornerShape(12.dp),
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                            modifier = Modifier.padding(start = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Redo,
+                                "Redo",
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
                     )
                 )
             }
@@ -332,11 +377,15 @@ fun MapScreen(
                 }
 
                 if (uiState.gpsStatus.accuracyM > 0f) {
-                    Column(
+                    Surface(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth()
-                            .padding(8.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                        tonalElevation = 2.dp,
+                        shadowElevation = 4.dp
                     ) {
                         GpsStatusPanel(
                             accuracyM = uiState.gpsStatus.accuracyM,
@@ -353,17 +402,23 @@ fun MapScreen(
                         .align(Alignment.BottomEnd)
                         .padding(16.dp),
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MeasurementType.entries.forEach { type ->
-                            FloatingActionButton(
-                                onClick = { viewModel.setMeasurementType(type) },
-                                modifier = Modifier.size(36.dp),
-                                containerColor = if (uiState.measurementType == type)
+                            val toolBg by animateColorAsState(
+                                targetValue = if (uiState.measurementType == type)
                                     MaterialTheme.colorScheme.primary
                                 else
                                     MaterialTheme.colorScheme.surfaceVariant,
+                                animationSpec = tween(300),
+                                label = "toolBg_${type.name}"
+                            )
+
+                            SmallFloatingActionButton(
+                                onClick = { viewModel.setMeasurementType(type) },
+                                shape = RoundedCornerShape(12.dp),
+                                containerColor = toolBg,
                                 contentColor = if (uiState.measurementType == type)
                                     MaterialTheme.colorScheme.onPrimary
                                 else
@@ -376,21 +431,21 @@ fun MapScreen(
                                         MeasurementType.LINE -> "L"
                                         MeasurementType.POINT -> "P"
                                     },
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
                     }
 
-                    FloatingActionButton(
+                    SmallFloatingActionButton(
                         onClick = {
                             if (ContextCompat.checkSelfPermission(
                                     context, Manifest.permission.ACCESS_FINE_LOCATION
                                 ) != PackageManager.PERMISSION_GRANTED
                             ) {
                                 permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                                return@FloatingActionButton
+                                return@SmallFloatingActionButton
                             }
                             myLocationOverlay?.let { overlay ->
                                 if (overlay.myLocation != null) {
