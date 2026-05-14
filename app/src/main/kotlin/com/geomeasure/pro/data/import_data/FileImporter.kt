@@ -2,6 +2,7 @@ package com.geomeasure.pro.data.import_data
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.Transaction
 import com.geomeasure.pro.core.util.FileUtils
 import com.geomeasure.pro.data.local.db.AppDatabase
 import com.geomeasure.pro.data.local.db.entities.ProjectEntity
@@ -12,11 +13,13 @@ import javax.inject.Inject
 
 class FileImporter @Inject constructor(private val db: AppDatabase) {
 
+    @Transaction
     suspend fun importFile(uri: Uri, context: Context): Result<ProjectEntity> = runCatching<ProjectEntity> {
         val fileName = FileUtils.getFileName(context, uri) ?: "Import"
         val extension = fileName.substringAfterLast('.', "").lowercase()
-        val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
-            ?: error("Cannot read file")
+        val content = context.contentResolver.openInputStream(uri)?.use { stream ->
+            stream.bufferedReader().readText()
+        } ?: error("Cannot read file")
 
         val parseResult = when (extension) {
             "geojson", "json" -> parseGeoJson(content, fileName)

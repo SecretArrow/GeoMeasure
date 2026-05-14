@@ -101,8 +101,8 @@ class MapViewModel @Inject constructor(
     }
 
     fun addVertex(latitude: Double, longitude: Double) {
-        saveUndoState()
         val project = _uiState.value.currentProject ?: return
+        saveUndoState()
         viewModelScope.launch {
             val vertex = VertexEntity(
                 projectId = project.id,

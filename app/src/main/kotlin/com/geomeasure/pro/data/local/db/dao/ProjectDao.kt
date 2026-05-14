@@ -17,6 +17,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE folder_id = :folderId ORDER BY modified_at DESC")
     fun getProjectsByFolder(folderId: String?): Flow<List<ProjectEntity>>
 
+    @Query("SELECT * FROM projects WHERE folder_id IS NULL ORDER BY modified_at DESC")
+    fun getRootProjects(): Flow<List<ProjectEntity>>
+
     @Query("SELECT * FROM projects WHERE id = :id")
     suspend fun getProjectById(id: String): ProjectEntity?
 

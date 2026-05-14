@@ -24,9 +24,9 @@ class GpsStatusProvider @Inject constructor(
 
     private val gnssCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {
-            val used = status.satelliteCount
+            val usedInFix = (0 until status.satelliteCount).count { status.usedInFix(it) }
             val inView = status.satelliteCount
-            listeners.forEach { it(GpsStatus(satellitesUsed = used, satellitesInView = inView)) }
+            listeners.forEach { it(GpsStatus(satellitesUsed = usedInFix, satellitesInView = inView)) }
         }
     }
 

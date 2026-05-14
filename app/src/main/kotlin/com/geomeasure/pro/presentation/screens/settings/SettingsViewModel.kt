@@ -2,6 +2,7 @@ package com.geomeasure.pro.presentation.screens.settings
 
 import android.app.Application
 import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.geomeasure.pro.core.map.OfflineMapManager
@@ -28,7 +29,8 @@ data class SettingsUiState(
     val isDeleting: Boolean = false,
     val isClearingCache: Boolean = false,
     val message: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val backupUri: Uri? = null
 )
 
 @HiltViewModel
@@ -90,42 +92,25 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun exportBackup(uri: Uri? = null) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBackingUp = true, error = null, message = null) }
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                withContext(Dispatchers.IO) {
-                    val ctx = getApplication<Application>()
-                    val dbFile = ctx.getDatabasePath("geomeasure.db")
-                    if (!dbFile.exists()) throw IllegalStateException("Database not found")
-
-                    val backupFile = if (uri != null) {
-                        ctx.contentResolver.openOutputStream(uri)?.use { out ->
-                            dbFile.inputStream().use { it.copyTo(out) }
-                        }
-                        null
-                    } else {
-                        val exportDir = File(ctx.cacheDir, "backups").also { it.mkdirs() }
-                        val file = File(exportDir, "GeoMeasure_backup.gmbackup")
-                        dbFile.inputStream().use { input ->
-                            file.outputStream().use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-                        file
-                    }
-
-                    _uiState.update {
-                        it.copy(
-                            isBackingUp = false,
-                            message = "Backup exported successfully" +
-                                    (if (backupFile != null) " to ${backupFile.absolutePath}" else "")
-                        )
+                _uiState.update { it.copy(message = "Exporting backup...") }
+                val ctx = getApplication<Application>()
+                val dbFile = ctx.getDatabasePath("geomeasure.db")
+                if (!dbFile.exists()) {
+                    _uiState.update { it.copy(error = "No database found") }
+                    return@launch
+                }
+                val backupFile = File(ctx.cacheDir, "geomeasure_backup.db")
+                dbFile.inputStream().use { input ->
+                    backupFile.outputStream().use { output ->
+                        input.copyTo(output)
                     }
                 }
+                val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", backupFile)
+                _uiState.update { it.copy(message = "Backup ready at $uri", backupUri = uri) }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(isBackingUp = false, error = "Backup failed: ${e.message}")
-                }
+                _uiState.update { it.copy(error = "Backup failed: ${e.message}") }
             }
         }
     }

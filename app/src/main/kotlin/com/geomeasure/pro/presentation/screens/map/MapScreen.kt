@@ -1,7 +1,5 @@
 package com.geomeasure.pro.presentation.screens.map
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -44,11 +42,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.geomeasure.pro.data.local.db.entities.VertexEntity
 import com.geomeasure.pro.presentation.components.GpsStatusPanel
 import com.geomeasure.pro.presentation.components.MeasurementBottomSheet
 import org.osmdroid.events.MapEventsReceiver
@@ -76,12 +74,6 @@ fun MapScreen(
         } else if (uiState.currentProject == null) {
             viewModel.createNewProject()
         }
-    }
-
-    val hasLocationPermission = remember {
-        ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
     }
 
     BottomSheetScaffold(
@@ -123,6 +115,7 @@ fun MapScreen(
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                 var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+                var previousVertices by remember { mutableStateOf<List<VertexEntity>?>(null) }
 
                 AndroidView(
                     factory = { ctx ->
@@ -131,7 +124,6 @@ fun MapScreen(
                             mv.setTileSource(TileSourceFactory.MAPNIK)
                             mv.setMultiTouchControls(true)
                             mv.controller.setZoom(16.0)
-                            mv.onResume()
                             mv.overlays.add(
                                 MapEventsOverlay(object : MapEventsReceiver {
                                     override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -148,42 +140,46 @@ fun MapScreen(
                     },
                     update = { mv ->
                         mapViewRef = mv
-                        while (mv.overlays.size > 1) {
-                            mv.overlays.removeAt(mv.overlays.lastIndex)
-                        }
-                        uiState.vertices.sortedBy { it.order }.forEach { vertex ->
-                            Marker(mv).apply {
-                                position = GeoPoint(vertex.latitude, vertex.longitude)
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                isDraggable = true
-                                title = "${vertex.order + 1}"
-                                setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
-                                    override fun onMarkerDragStart(marker: Marker) {}
-                                    override fun onMarkerDrag(marker: Marker) {}
-                                    override fun onMarkerDragEnd(marker: Marker) {
-                                        viewModel.updateVertex(
-                                            vertex.copy(
-                                                latitude = marker.position.latitude,
-                                                longitude = marker.position.longitude
+                        val sorted = uiState.vertices.sortedBy { it.order }
+                        if (sorted != previousVertices) {
+                            previousVertices = sorted
+                            while (mv.overlays.size > 1) {
+                                mv.overlays.removeAt(mv.overlays.lastIndex)
+                            }
+                            sorted.forEach { vertex ->
+                                Marker(mv).apply {
+                                    position = GeoPoint(vertex.latitude, vertex.longitude)
+                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                    isDraggable = true
+                                    title = "${vertex.order + 1}"
+                                    setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                                        override fun onMarkerDragStart(marker: Marker) {}
+                                        override fun onMarkerDrag(marker: Marker) {}
+                                        override fun onMarkerDragEnd(marker: Marker) {
+                                            viewModel.updateVertex(
+                                                vertex.copy(
+                                                    latitude = marker.position.latitude,
+                                                    longitude = marker.position.longitude
+                                                )
                                             )
-                                        )
-                                    }
-                                })
-                                mv.overlays.add(this)
-                            }
-                        }
-                        if (uiState.vertices.size >= 2) {
-                            Polygon().apply {
-                                points = uiState.vertices.sortedBy { it.order }.map {
-                                    GeoPoint(it.latitude, it.longitude)
+                                        }
+                                    })
+                                    mv.overlays.add(this)
                                 }
-                                fillColor = AndroidColor.argb(75, 33, 150, 243)
-                                strokeColor = AndroidColor.argb(255, 33, 150, 243)
-                                strokeWidth = 3f
-                                mv.overlays.add(this)
                             }
+                            if (sorted.size >= 2) {
+                                Polygon().apply {
+                                    points = sorted.map {
+                                        GeoPoint(it.latitude, it.longitude)
+                                    }
+                                    fillColor = AndroidColor.argb(75, 33, 150, 243)
+                                    strokeColor = AndroidColor.argb(255, 33, 150, 243)
+                                    strokeWidth = 3f
+                                    mv.overlays.add(this)
+                                }
+                            }
+                            mv.invalidate()
                         }
-                        mv.invalidate()
                     },
                     modifier = Modifier.fillMaxSize()
                 )

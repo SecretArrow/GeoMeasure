@@ -38,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .openHelperFactory(factory)
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
             }

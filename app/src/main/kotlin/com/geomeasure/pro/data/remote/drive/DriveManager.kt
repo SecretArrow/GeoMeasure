@@ -95,8 +95,9 @@ class DriveManager @Inject constructor(
                 .setFields("files(id, name)")
                 .execute().files
                 .map { file ->
-                    val content = drive.files().get(file.id).executeMediaAsInputStream()
-                        .bufferedReader().readText()
+                    val content = drive.files().get(file.id).executeMediaAsInputStream().use { stream ->
+                        stream.bufferedReader().readText()
+                    }
                     Pair(file.name, content)
                 }
         }
