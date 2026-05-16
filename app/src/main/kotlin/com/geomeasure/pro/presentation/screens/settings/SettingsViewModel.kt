@@ -129,7 +129,7 @@ class SettingsViewModel @Inject constructor(
                 }
                 _uiState.update { it.copy(message = "Backup exported successfully") }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Backup failed: ${e.message}") }
+                _uiState.update { it.copy(error = "Backup failed: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -185,7 +185,7 @@ class SettingsViewModel @Inject constructor(
                 // Ensure singleton is reset even on failure
                 try { AppDatabase.resetInstance(); refreshDaos() } catch (_: Exception) {}
                 _uiState.update {
-                    it.copy(isRestoring = false, error = "Restore failed: ${e.message}")
+                    it.copy(isRestoring = false, error = "Restore failed: ${e.message ?: "Unknown error"}")
                 }
             }
         }
@@ -212,7 +212,7 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isDeleting = false, error = "Delete failed: ${e.message}")
+                    it.copy(isDeleting = false, error = "Delete failed: ${e.message ?: "Unknown error"}")
                 }
             } finally {
                 isDeleting = false
@@ -233,7 +233,7 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isClearingCache = false, error = "Cache clear failed: ${e.message}")
+                    it.copy(isClearingCache = false, error = "Cache clear failed: ${e.message ?: "Unknown error"}")
                 }
             }
         }

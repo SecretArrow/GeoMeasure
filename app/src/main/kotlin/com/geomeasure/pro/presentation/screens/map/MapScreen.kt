@@ -240,10 +240,10 @@ fun MapScreen(
                         try {
                             context.startActivity(Intent.createChooser(intent, "Share Screenshot"))
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Share failed: ${e.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
                         }
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Screenshot failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Screenshot failed: ${e.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
                     }
                 }
             )

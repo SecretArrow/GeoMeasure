@@ -43,7 +43,7 @@ class ProjectViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Failed to load projects: ${e.message}") }
+                _uiState.update { it.copy(isLoading = false, error = "Failed to load projects: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -63,7 +63,7 @@ class ProjectViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Search failed: ${e.message}") }
+                _uiState.update { it.copy(error = "Search failed: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -73,7 +73,7 @@ class ProjectViewModel @Inject constructor(
             try {
                 repository.deleteProject(project)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to delete project: ${e.message}") }
+                _uiState.update { it.copy(error = "Failed to delete project: ${e.message ?: "Unknown error"}") }
             }
         }
     }

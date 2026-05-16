@@ -107,7 +107,7 @@ class ExportViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "SHP export failed: ${e.message}") }
+                _uiState.update { it.copy(error = "SHP export failed: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -152,7 +152,7 @@ class ExportViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isExporting = false, error = "Export failed: ${e.message}") }
+                _uiState.update { it.copy(isExporting = false, error = "Export failed: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -184,7 +184,7 @@ class ExportViewModel @Inject constructor(
                     it.copy(successMessage = "File imported successfully", error = null)
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Import failed: ${e.message}") }
+                _uiState.update { it.copy(error = "Import failed: ${e.message ?: "Unknown error"}") }
             }
         }
     }

@@ -86,7 +86,7 @@ class DriveViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isSyncing = false, error = "Sync failed: ${e.message}")
+                    it.copy(isSyncing = false, error = "Sync failed: ${e.message ?: "Unknown error"}")
                 }
             }
         }
@@ -104,7 +104,7 @@ class DriveViewModel @Inject constructor(
                         }
                     }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Sign out failed: ${e.message}") }
+                _uiState.update { it.copy(error = "Sign out failed: ${e.message ?: "Unknown error"}") }
             }
         }
     }

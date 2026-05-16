@@ -457,7 +457,7 @@ fun MeasurementBottomSheet(
                                 try {
                                     context.startActivity(Intent.createChooser(intent, "Export GeoJSON"))
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Export failed: ${e.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         },
@@ -500,7 +500,7 @@ fun MeasurementBottomSheet(
                             try {
                                 context.startActivity(Intent.createChooser(intent, "Share"))
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Share failed: ${e.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },

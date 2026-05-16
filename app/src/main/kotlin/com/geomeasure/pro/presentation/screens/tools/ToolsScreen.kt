@@ -189,7 +189,7 @@ fun ToolsScreen(
                                 try {
                                     context.startActivity(android.content.Intent.createChooser(shareIntent, "Share"))
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Share failed: ${e.message ?: "Unknown error"}", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()

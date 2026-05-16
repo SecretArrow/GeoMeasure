@@ -92,7 +92,7 @@ class MapViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to create project: ${e.message}") }
+                _uiState.update { it.copy(error = "Failed to create project: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -122,7 +122,7 @@ class MapViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, error = "Project not found") }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Failed to load project: ${e.message}") }
+                _uiState.update { it.copy(isLoading = false, error = "Failed to load project: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -140,7 +140,7 @@ class MapViewModel @Inject constructor(
                 )
                 repository.insertVertex(vertex)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to add vertex: ${e.message}") }
+                _uiState.update { it.copy(error = "Failed to add vertex: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -151,7 +151,7 @@ class MapViewModel @Inject constructor(
             try {
                 repository.deleteVertex(vertex)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to remove vertex: ${e.message}") }
+                _uiState.update { it.copy(error = "Failed to remove vertex: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -162,7 +162,7 @@ class MapViewModel @Inject constructor(
             try {
                 repository.updateVertex(vertex)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to update vertex: ${e.message}") }
+                _uiState.update { it.copy(error = "Failed to update vertex: ${e.message ?: "Unknown error"}") }
             }
         }
     }
@@ -199,7 +199,7 @@ class MapViewModel @Inject constructor(
                 )
                 _uiState.update { it.copy(areaM2 = area, perimeterM = perimeter) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to save project: ${e.message}") }
+                _uiState.update { it.copy(error = "Failed to save project: ${e.message ?: "Unknown error"}") }
             }
         }
     }
