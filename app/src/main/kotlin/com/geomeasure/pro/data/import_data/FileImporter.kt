@@ -81,7 +81,9 @@ class FileImporter @Inject constructor(private val db: AppDatabase) {
             "MultiPolygon" -> {
                 val arr = geometry.getJSONArray("coordinates")
                 if (arr.length() == 0) error("Empty MultiPolygon coordinates")
-                arr.getJSONArray(0).getJSONArray(0)
+                val firstPoly = arr.getJSONArray(0)
+                if (firstPoly.length() == 0) error("Empty MultiPolygon ring")
+                firstPoly.getJSONArray(0)
             }
             else -> error("Unsupported geometry type: $geometryType")
         }
