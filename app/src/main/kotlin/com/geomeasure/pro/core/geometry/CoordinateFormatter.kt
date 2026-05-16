@@ -82,19 +82,13 @@ object CoordinateFormatter {
         currLat: Double, currLon: Double,
         nextLat: Double, nextLon: Double
     ): AngleResult {
-        val a1 = Math.toDegrees(atan2(
-            Math.toRadians(currLat - prevLat),
-            Math.toRadians(currLon - prevLon)
-        ))
-        val a2 = Math.toDegrees(atan2(
-            Math.toRadians(nextLat - currLat),
-            Math.toRadians(nextLon - currLon)
-        ))
-        var angle = (a2 - a1 + 360) % 360
+        val bearingPrevToCurr = bearingBetween(prevLat, prevLon, currLat, currLon).azimuthDeg
+        val bearingCurrToNext = bearingBetween(currLat, currLon, nextLat, nextLon).azimuthDeg
+        var angle = (bearingCurrToNext - bearingPrevToCurr + 360) % 360
+        val turnDir = if (angle > 180) "Left" else "Right"
         if (angle > 180) angle = 360 - angle
         val dms = "${angle.toInt()}°${((angle - angle.toInt()) * 60).toInt()}'"
-        val dir = if ((a2 - a1 + 360) % 360 > 180) "Left" else "Right"
-        return AngleResult(angle, dms, dir)
+        return AngleResult(angle, dms, turnDir)
     }
 
     fun formatArea(areaM2: Double, lang: String = "en"): String {

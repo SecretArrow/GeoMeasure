@@ -31,6 +31,7 @@ class MapViewModel @Inject constructor(
 
     private val undoStack = mutableListOf<List<VertexEntity>>()
     private val redoStack = mutableListOf<List<VertexEntity>>()
+    private var projectLoadJob: kotlinx.coroutines.Job? = null
 
     private fun saveUndoState() {
         undoStack.add(_uiState.value.vertices.toList())
@@ -58,9 +59,10 @@ class MapViewModel @Inject constructor(
     }
 
     fun createNewProject(name: String = "New Measurement") {
+        projectLoadJob?.cancel()
         undoStack.clear()
         redoStack.clear()
-        viewModelScope.launch {
+        projectLoadJob = viewModelScope.launch {
             try {
                 val project = ProjectEntity(
                     id = UUID.randomUUID().toString(),
@@ -82,9 +84,10 @@ class MapViewModel @Inject constructor(
     }
 
     fun loadProject(projectId: String) {
+        projectLoadJob?.cancel()
         undoStack.clear()
         redoStack.clear()
-        viewModelScope.launch {
+        projectLoadJob = viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true) }
                 val project = repository.getProjectById(projectId)

@@ -137,10 +137,15 @@ class ExportViewModel @Inject constructor(
                     }
                     ExportFormat.PDF -> {
                         val file = exportProject.exportPdf(project, vertices, null)
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            getApplication(),
+                            "${getApplication<Application>().packageName}.fileprovider",
+                            file
+                        )
                         _uiState.update {
                             it.copy(
                                 isExporting = false,
-                                exportedFile = Uri.fromFile(file),
+                                exportedFile = uri,
                                 successMessage = "PDF exported: ${file.name}"
                             )
                         }

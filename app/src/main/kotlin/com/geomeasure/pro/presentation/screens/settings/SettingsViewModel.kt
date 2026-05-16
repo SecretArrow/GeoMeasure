@@ -101,14 +101,17 @@ class SettingsViewModel @Inject constructor(
                     _uiState.update { it.copy(error = "No database found") }
                     return@launch
                 }
-                val backupFile = File(ctx.cacheDir, "geomeasure_backup.db")
-                dbFile.inputStream().use { input ->
-                    backupFile.outputStream().use { output ->
-                        input.copyTo(output)
+                if (uri != null) {
+                    ctx.contentResolver.openOutputStream(uri)?.use { output ->
+                        dbFile.inputStream().use { input -> input.copyTo(output) }
+                    }
+                } else {
+                    val backupFile = File(ctx.cacheDir, "geomeasure_backup.db")
+                    dbFile.inputStream().use { input ->
+                        backupFile.outputStream().use { output -> input.copyTo(output) }
                     }
                 }
-                val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", backupFile)
-                _uiState.update { it.copy(message = "Backup ready at $uri", backupUri = uri) }
+                _uiState.update { it.copy(message = "Backup exported successfully") }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Backup failed: ${e.message}") }
             }

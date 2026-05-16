@@ -87,7 +87,16 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     }
 
     LaunchedEffect(uiState.message) {
-        uiState.message?.let { viewModel.clearMessages() }
+        if (uiState.message != null) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.clearMessages()
+        }
+    }
+    LaunchedEffect(uiState.error) {
+        if (uiState.error != null) {
+            kotlinx.coroutines.delay(5000)
+            viewModel.clearMessages()
+        }
     }
 
     if (showDeleteDialog) {

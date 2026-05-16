@@ -282,8 +282,10 @@ fun MeasurementBottomSheet(
                 )
                 Spacer(Modifier.height(4.dp))
             }
-            itemsIndexed(sortedVertices.dropLast(1)) { index, vertex ->
-                val next = sortedVertices[index + 1]
+            val totalSegments = sortedVertices.size
+            itemsIndexed(sortedVertices) { index, vertex ->
+                val next = sortedVertices[(index + 1) % totalSegments]
+                val label = if (index < totalSegments - 1) "${index + 1} → ${index + 2}" else "${index + 1} → 1"
                 val bearing = CoordinateFormatter.bearingBetween(
                     vertex.latitude, vertex.longitude,
                     next.latitude, next.longitude
@@ -293,7 +295,7 @@ fun MeasurementBottomSheet(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "${index + 1} → ${index + 2}",
+                        label,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(56.dp)

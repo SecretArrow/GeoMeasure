@@ -14,6 +14,11 @@ import com.geomeasure.pro.R
 import com.geomeasure.pro.data.local.prefs.AppPreferences
 import com.geomeasure.pro.data.repository.MeasurementRepositoryImpl
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -31,6 +36,7 @@ class GpsRecordingService : Service() {
     private var accuracyThreshold = 10f
     private var minDistance = 1f
     private var intervalMs = 1000L
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     inner class LocalBinder : Binder() {
         fun getService() = this@GpsRecordingService
@@ -60,25 +66,27 @@ class GpsRecordingService : Service() {
 
         projectId = intent?.getStringExtra("project_id") ?: return START_NOT_STICKY
 
-        val settings = prefs.getSettingsBlocking()
-        accuracyThreshold = settings.gpsAccuracyThreshold
-        minDistance = settings.gpsMinDistance
-        intervalMs = settings.gpsIntervalMs
+        serviceScope.launch {
+            val settings = prefs.settings.first()
+            accuracyThreshold = settings.gpsAccuracyThreshold
+            minDistance = settings.gpsMinDistance
+            intervalMs = settings.gpsIntervalMs
 
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            stopSelf()
-            return START_NOT_STICKY
+            if (ContextCompat.checkSelfPermission(this@GpsRecordingService, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                stopSelf()
+                return@launch
+            }
+
+            startForeground(NOTIF_ID, buildNotification("Recording GPS"))
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                intervalMs,
+                minDistance,
+                locationListener
+            )
         }
-
-        startForeground(NOTIF_ID, buildNotification("Recording GPS"))
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            intervalMs,
-            minDistance,
-            locationListener
-        )
         return START_REDELIVER_INTENT
     }
 

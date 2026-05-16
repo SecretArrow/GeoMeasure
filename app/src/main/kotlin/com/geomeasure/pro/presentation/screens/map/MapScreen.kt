@@ -58,6 +58,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,12 +101,15 @@ fun MapScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var permissionLaunched by remember { mutableStateOf(false) }
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+    var myLocationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
     var isFollowing by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (!granted) {
+        if (granted) {
+            myLocationOverlay?.enableMyLocation()
+        } else {
             Toast.makeText(context, "Location permission required for My Location", Toast.LENGTH_LONG).show()
         }
     }
@@ -113,7 +117,7 @@ fun MapScreen(
     LaunchedEffect(projectId) {
         if (projectId != null) {
             viewModel.loadProject(projectId)
-        } else if (uiState.currentProject == null) {
+        } else {
             viewModel.createNewProject()
         }
     }
@@ -274,7 +278,6 @@ fun MapScreen(
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                 var previousVertices by remember { mutableStateOf<List<VertexEntity>?>(null) }
-                var myLocationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
 
                 AndroidView(
                     factory = { ctx ->
@@ -306,19 +309,19 @@ fun MapScreen(
                                 })
                             )
 
-                            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
-                                == PackageManager.PERMISSION_GRANTED
-                            ) {
-                                val provider = GpsMyLocationProvider(ctx)
-                                MyLocationNewOverlay(provider, mv).also { overlay ->
+                            val provider = GpsMyLocationProvider(ctx)
+                            MyLocationNewOverlay(provider, mv).also { overlay ->
+                                if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
+                                    == PackageManager.PERMISSION_GRANTED
+                                ) {
                                     overlay.enableMyLocation()
                                     overlay.enableFollowLocation()
                                     overlay.runOnFirstFix {
                                         overlay.myLocation?.let { mv.controller.animateTo(it) }
                                     }
-                                    mv.overlays.add(overlay)
-                                    myLocationOverlay = overlay
                                 }
+                                mv.overlays.add(overlay)
+                                myLocationOverlay = overlay
                             }
                         }
                     },
@@ -327,7 +330,8 @@ fun MapScreen(
                         val sorted = uiState.vertices.sortedBy { it.order }
                         if (sorted != previousVertices) {
                             previousVertices = sorted
-                            while (mv.overlays.size > 2 + if (myLocationOverlay != null) 1 else 0) {
+                            val baseCount = 3
+                            while (mv.overlays.size > baseCount) {
                                 mv.overlays.removeAt(mv.overlays.lastIndex)
                             }
                             sorted.forEachIndexed { index, vertex ->
@@ -371,11 +375,13 @@ fun MapScreen(
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         when (event) {
-                            Lifecycle.Event.ON_CREATE -> {
-                                mapViewRef?.onResume()
-                            }
                             Lifecycle.Event.ON_RESUME -> {
-                                myLocationOverlay?.enableMyLocation()
+                                mapViewRef?.onResume()
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                                    == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    myLocationOverlay?.enableMyLocation()
+                                }
                             }
                             Lifecycle.Event.ON_PAUSE -> {
                                 mapViewRef?.onPause()
@@ -463,7 +469,14 @@ fun MapScreen(
                                 permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                                 return@SmallFloatingActionButton
                             }
-                            myLocationOverlay?.let { overlay ->
+                            val overlay = myLocationOverlay
+                            if (overlay != null) {
+                                if (!overlay.isMyLocationEnabled && ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    overlay.enableMyLocation()
+                                }
                                 if (overlay.myLocation != null) {
                                     isFollowing = !isFollowing
                                     if (isFollowing) {

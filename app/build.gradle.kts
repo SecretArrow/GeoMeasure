@@ -164,7 +164,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.8.2")
 
     // Security
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.0.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
