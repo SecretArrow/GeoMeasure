@@ -89,7 +89,7 @@ class GpsRecordingService : Service() {
 
     private fun updateNotification() {
         val notification = buildNotification("$pointCount points recorded")
-        val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as? android.app.NotificationManager ?: return
         manager.notify(NOTIF_ID, notification)
     }
 

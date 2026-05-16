@@ -12,13 +12,14 @@ import com.geomeasure.pro.data.export.ShapefileExporter
 import com.geomeasure.pro.domain.usecase.ExportProjectUseCase
 import com.geomeasure.pro.domain.usecase.ImportFileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
-import java.io.File
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 data class ExportUiState(
@@ -88,12 +89,27 @@ class ExportViewModel @Inject constructor(
         exportFormat(ExportFormat.PDF)
     }
 
-    fun exportSHP(projectId: String): File? {
-        val project = runBlocking { db.projectDao().getProjectById(projectId) } ?: return null
-        val vertices = runBlocking { db.vertexDao().getVerticesForProject(projectId) }
-        val ctx = getApplication<Application>()
-        val (shpFile, _, _) = shapefileExporter.export(project, vertices, ctx)
-        return shpFile
+    fun exportSHP(projectId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val project = db.projectDao().getProjectById(projectId) ?: return@launch
+                val vertices = db.vertexDao().getVerticesForProject(projectId)
+                val ctx = getApplication<Application>()
+                val (shpFile, _, _) = shapefileExporter.export(project, vertices, ctx)
+                _uiState.update {
+                    it.copy(
+                        exportedFile = androidx.core.content.FileProvider.getUriForFile(
+                            ctx,
+                            "${ctx.packageName}.fileprovider",
+                            shpFile
+                        ),
+                        successMessage = "SHP exported: ${shpFile.name}"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "SHP export failed: ${e.message}") }
+            }
+        }
     }
 
     private fun exportFormat(format: ExportFormat) {

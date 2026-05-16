@@ -152,21 +152,7 @@ fun ToolsScreen(
                         Spacer(Modifier.height(8.dp))
                         Button(
                             onClick = {
-                                val project = uiState.selectedProject ?: return@Button
-                                val shpFile = viewModel.exportSHP(project.id)
-                                if (shpFile != null) {
-                                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                                        context,
-                                        "${context.packageName}.fileprovider",
-                                        shpFile
-                                    )
-                                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                        type = "application/octet-stream"
-                                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(android.content.Intent.createChooser(intent, "Export SHP"))
-                                }
+                                viewModel.exportSHP(uiState.selectedProject?.id ?: return@Button)
                             },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isExporting && uiState.selectedProject != null
@@ -185,7 +171,13 @@ fun ToolsScreen(
                             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         Button(
-                            onClick = { context.startActivity(android.content.Intent.createChooser(shareIntent, "Share")) },
+                            onClick = {
+                                try {
+                                    context.startActivity(android.content.Intent.createChooser(shareIntent, "Share"))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Share ${uiState.exportFormat ?: "File"}")
@@ -299,13 +291,21 @@ private fun convert(
 ) {
     val value = input.toDoubleOrNull() ?: return
     val result = if (useArea) {
-        val inSqm = value / (from as UnitConverter.AreaUnit).factor
-        UnitConverter.convertArea(inSqm, to as UnitConverter.AreaUnit)
+        val fromUnit = from as? UnitConverter.AreaUnit ?: return
+        val toUnit = to as? UnitConverter.AreaUnit ?: return
+        val inSqm = value / fromUnit.factor
+        UnitConverter.convertArea(inSqm, toUnit)
     } else {
-        val inM = value / (from as UnitConverter.DistanceUnit).factor
-        UnitConverter.convertDistance(inM, to as UnitConverter.DistanceUnit)
+        val fromUnit = from as? UnitConverter.DistanceUnit ?: return
+        val toUnit = to as? UnitConverter.DistanceUnit ?: return
+        val inM = value / fromUnit.factor
+        UnitConverter.convertDistance(inM, toUnit)
     }
-    val toSymbol = if (useArea) (to as UnitConverter.AreaUnit).symbol else (to as UnitConverter.DistanceUnit).symbol
+    val toSymbol = if (useArea) {
+        (to as? UnitConverter.AreaUnit)?.symbol ?: return
+    } else {
+        (to as? UnitConverter.DistanceUnit)?.symbol ?: return
+    }
     onResult("${result.formatDecimals(4)} $toSymbol")
 }
 

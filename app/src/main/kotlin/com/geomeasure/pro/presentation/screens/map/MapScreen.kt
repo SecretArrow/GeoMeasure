@@ -219,7 +219,11 @@ fun MapScreen(
                             putExtra(Intent.EXTRA_TEXT, shareText.toString())
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
-                        context.startActivity(Intent.createChooser(intent, "Share Screenshot"))
+                        try {
+                            context.startActivity(Intent.createChooser(intent, "Share Screenshot"))
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
                     } catch (e: Exception) {
                         Toast.makeText(context, "Screenshot failed: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
@@ -310,7 +314,7 @@ fun MapScreen(
                                     overlay.enableMyLocation()
                                     overlay.enableFollowLocation()
                                     overlay.runOnFirstFix {
-                                        mv.controller.animateTo(overlay.myLocation)
+                                        overlay.myLocation?.let { mv.controller.animateTo(it) }
                                     }
                                     mv.overlays.add(overlay)
                                     myLocationOverlay = overlay
@@ -364,15 +368,13 @@ fun MapScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                LaunchedEffect(mapViewRef) {
-                    mapViewRef?.onResume()
-                }
-
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         when (event) {
-                            Lifecycle.Event.ON_RESUME -> {
+                            Lifecycle.Event.ON_CREATE -> {
                                 mapViewRef?.onResume()
+                            }
+                            Lifecycle.Event.ON_RESUME -> {
                                 myLocationOverlay?.enableMyLocation()
                             }
                             Lifecycle.Event.ON_PAUSE -> {
@@ -466,14 +468,14 @@ fun MapScreen(
                                     isFollowing = !isFollowing
                                     if (isFollowing) {
                                         overlay.enableFollowLocation()
-                                        mapViewRef?.controller?.animateTo(overlay.myLocation)
+                                        overlay.myLocation?.let { mapViewRef?.controller?.animateTo(it) }
                                     } else {
                                         overlay.disableFollowLocation()
                                     }
                                 } else {
                                     overlay.runOnFirstFix {
                                         overlay.enableFollowLocation()
-                                        mapViewRef?.controller?.animateTo(overlay.myLocation)
+                                        overlay.myLocation?.let { mapViewRef?.controller?.animateTo(it) }
                                         isFollowing = true
                                     }
                                 }

@@ -12,10 +12,12 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.geomeasure.pro.core.util.UnitConverter
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -80,7 +82,7 @@ class AppPreferences @Inject constructor(
         )
     }
 
-    fun getSettingsBlocking(): AppSettings = runBlocking {
+    fun getSettingsBlocking(): AppSettings = runBlocking(Dispatchers.IO) {
         context.dataStore.data.map { prefs ->
             AppSettings(
                 darkMode = prefs[Keys.DARK_MODE] ?: false,

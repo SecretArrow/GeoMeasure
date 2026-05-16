@@ -95,13 +95,17 @@ class DriveViewModel @Inject constructor(
     fun signOut() {
         val context = getApplication<Application>()
         viewModelScope.launch {
-            GoogleSignIn.getClient(context, com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .signOut()
-                .addOnCompleteListener {
-                    _uiState.update {
-                        it.copy(isSignedIn = false, accountEmail = null, syncCount = 0, lastSyncTime = null)
+            try {
+                GoogleSignIn.getClient(context, com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .signOut()
+                    .addOnCompleteListener {
+                        _uiState.update {
+                            it.copy(isSignedIn = false, accountEmail = null, syncCount = 0, lastSyncTime = null)
+                        }
                     }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Sign out failed: ${e.message}") }
+            }
         }
     }
 

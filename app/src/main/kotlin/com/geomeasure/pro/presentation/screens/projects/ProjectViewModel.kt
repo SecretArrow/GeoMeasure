@@ -15,7 +15,8 @@ import javax.inject.Inject
 data class ProjectListUiState(
     val projects: List<ProjectEntity> = emptyList(),
     val searchQuery: String = "",
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -32,10 +33,14 @@ class ProjectViewModel @Inject constructor(
 
     private fun loadProjects() {
         viewModelScope.launch {
-            repository.getAllProjects().collect { projects ->
-                _uiState.update {
-                    it.copy(projects = projects, isLoading = false)
+            try {
+                repository.getAllProjects().collect { projects ->
+                    _uiState.update {
+                        it.copy(projects = projects, isLoading = false)
+                    }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "Failed to load projects: ${e.message}") }
             }
         }
     }
@@ -43,19 +48,27 @@ class ProjectViewModel @Inject constructor(
     fun search(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
         viewModelScope.launch {
-            if (query.isBlank()) {
-                loadProjects()
-            } else {
-                repository.searchProjects(query).collect { projects ->
-                    _uiState.update { it.copy(projects = projects) }
+            try {
+                if (query.isBlank()) {
+                    loadProjects()
+                } else {
+                    repository.searchProjects(query).collect { projects ->
+                        _uiState.update { it.copy(projects = projects) }
+                    }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Search failed: ${e.message}") }
             }
         }
     }
 
     fun deleteProject(project: ProjectEntity) {
         viewModelScope.launch {
-            repository.deleteProject(project)
+            try {
+                repository.deleteProject(project)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to delete project: ${e.message}") }
+            }
         }
     }
 }

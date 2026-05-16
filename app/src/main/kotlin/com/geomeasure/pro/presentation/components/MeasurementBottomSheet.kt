@@ -1,6 +1,7 @@
 package com.geomeasure.pro.presentation.components
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -450,7 +451,11 @@ fun MeasurementBottomSheet(
                                     putExtra(Intent.EXTRA_STREAM, uri)
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                context.startActivity(Intent.createChooser(intent, "Export GeoJSON"))
+                                try {
+                                    context.startActivity(Intent.createChooser(intent, "Export GeoJSON"))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -489,7 +494,11 @@ fun MeasurementBottomSheet(
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, shareText)
                             }
-                            context.startActivity(Intent.createChooser(intent, "Share"))
+                            try {
+                                context.startActivity(Intent.createChooser(intent, "Share"))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

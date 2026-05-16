@@ -48,47 +48,47 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     fun setDarkMode(enabled: Boolean) {
-        viewModelScope.launch { prefs.setDarkMode(enabled) }
+        viewModelScope.launch { try { prefs.setDarkMode(enabled) } catch (_: Exception) {} }
     }
 
     fun setDynamicColor(enabled: Boolean) {
-        viewModelScope.launch { prefs.setDynamicColor(enabled) }
+        viewModelScope.launch { try { prefs.setDynamicColor(enabled) } catch (_: Exception) {} }
     }
 
     fun setGpsPanel(enabled: Boolean) {
-        viewModelScope.launch { prefs.setShowGpsPanel(enabled) }
+        viewModelScope.launch { try { prefs.setShowGpsPanel(enabled) } catch (_: Exception) {} }
     }
 
     fun setAreaUnit(unit: UnitConverter.AreaUnit) {
-        viewModelScope.launch { prefs.setDefaultAreaUnit(unit) }
+        viewModelScope.launch { try { prefs.setDefaultAreaUnit(unit) } catch (_: Exception) {} }
     }
 
     fun setDistanceUnit(unit: UnitConverter.DistanceUnit) {
-        viewModelScope.launch { prefs.setDefaultDistanceUnit(unit) }
+        viewModelScope.launch { try { prefs.setDefaultDistanceUnit(unit) } catch (_: Exception) {} }
     }
 
     fun setDecimals(places: Int) {
-        viewModelScope.launch { prefs.setDecimalPlaces(places) }
+        viewModelScope.launch { try { prefs.setDecimalPlaces(places) } catch (_: Exception) {} }
     }
 
     fun setAccuracy(threshold: Float) {
-        viewModelScope.launch { prefs.setGpsAccuracyThreshold(threshold) }
+        viewModelScope.launch { try { prefs.setGpsAccuracyThreshold(threshold) } catch (_: Exception) {} }
     }
 
     fun setMinDist(distance: Float) {
-        viewModelScope.launch { prefs.setGpsMinDistance(distance) }
+        viewModelScope.launch { try { prefs.setGpsMinDistance(distance) } catch (_: Exception) {} }
     }
 
     fun setInterval(interval: Long) {
-        viewModelScope.launch { prefs.setGpsIntervalSec(interval) }
+        viewModelScope.launch { try { prefs.setGpsIntervalSec(interval) } catch (_: Exception) {} }
     }
 
     fun setTileSource(source: String) {
-        viewModelScope.launch { prefs.setTileSource(source) }
+        viewModelScope.launch { try { prefs.setTileSource(source) } catch (_: Exception) {} }
     }
 
     fun setCacheSize(size: Int) {
-        viewModelScope.launch { prefs.setCacheSizeMb(size) }
+        viewModelScope.launch { try { prefs.setCacheSizeMb(size) } catch (_: Exception) {} }
     }
 
     fun exportBackup(uri: Uri? = null) {
@@ -201,11 +201,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setLanguage(code: String) {
-        viewModelScope.launch { prefs.setLanguage(code) }
+        viewModelScope.launch { try { prefs.setLanguage(code) } catch (_: Exception) {} }
     }
 
     fun setCoordFormat(format: String) {
-        viewModelScope.launch { prefs.setCoordFormat(format) }
+        viewModelScope.launch { try { prefs.setCoordFormat(format) } catch (_: Exception) {} }
     }
 
     fun clearMessages() {

@@ -1,6 +1,7 @@
 package com.geomeasure.pro.presentation.screens.drive
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -81,6 +82,17 @@ fun DriveSettingsScreen(
                         Spacer(Modifier.height(8.dp))
                         Button(
                             onClick = {
+                                try {
+                                    val availability = com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                                    val result = availability.isGooglePlayServicesAvailable(context)
+                                    if (result != com.google.android.gms.common.ConnectionResult.SUCCESS) {
+                                        Toast.makeText(context, "Google Play Services not available", Toast.LENGTH_LONG).show()
+                                        return@Button
+                                    }
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "Google Play Services not available", Toast.LENGTH_LONG).show()
+                                    return@Button
+                                }
                                 val intent = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(
                                     context,
                                     com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(

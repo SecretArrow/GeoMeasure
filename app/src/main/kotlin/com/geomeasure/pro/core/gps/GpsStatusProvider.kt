@@ -19,7 +19,7 @@ data class GpsStatus(
 class GpsStatusProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
     private var listeners = mutableListOf<(GpsStatus) -> Unit>()
 
     private val gnssCallback = object : GnssStatus.Callback() {
@@ -33,14 +33,14 @@ class GpsStatusProvider @Inject constructor(
     fun register(callback: (GpsStatus) -> Unit) {
         listeners.add(callback)
         if (listeners.size == 1) {
-            locationManager.registerGnssStatusCallback(gnssCallback, null)
+            locationManager?.registerGnssStatusCallback(gnssCallback, null)
         }
     }
 
     fun unregister(callback: (GpsStatus) -> Unit) {
         listeners.remove(callback)
         if (listeners.isEmpty()) {
-            locationManager.unregisterGnssStatusCallback(gnssCallback)
+            locationManager?.unregisterGnssStatusCallback(gnssCallback)
         }
     }
 }

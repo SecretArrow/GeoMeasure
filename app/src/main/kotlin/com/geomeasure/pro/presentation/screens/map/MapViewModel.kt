@@ -61,18 +61,22 @@ class MapViewModel @Inject constructor(
         undoStack.clear()
         redoStack.clear()
         viewModelScope.launch {
-            val project = ProjectEntity(
-                id = UUID.randomUUID().toString(),
-                name = name
-            )
-            repository.insertProject(project)
-            _uiState.update {
-                it.copy(
-                    currentProject = project,
-                    vertices = emptyList(),
-                    areaM2 = 0.0,
-                    perimeterM = 0.0
+            try {
+                val project = ProjectEntity(
+                    id = UUID.randomUUID().toString(),
+                    name = name
                 )
+                repository.insertProject(project)
+                _uiState.update {
+                    it.copy(
+                        currentProject = project,
+                        vertices = emptyList(),
+                        areaM2 = 0.0,
+                        perimeterM = 0.0
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to create project: ${e.message}") }
             }
         }
     }
@@ -81,23 +85,27 @@ class MapViewModel @Inject constructor(
         undoStack.clear()
         redoStack.clear()
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val project = repository.getProjectById(projectId)
-            if (project != null) {
-                repository.getVerticesForProject(projectId).collect { vertices ->
-                    val (area, perimeter) = calculateArea(vertices)
-                    _uiState.update {
-                        it.copy(
-                            currentProject = project,
-                            vertices = vertices,
-                            areaM2 = area,
-                            perimeterM = perimeter,
-                            isLoading = false
-                        )
+            try {
+                _uiState.update { it.copy(isLoading = true) }
+                val project = repository.getProjectById(projectId)
+                if (project != null) {
+                    repository.getVerticesForProject(projectId).collect { vertices ->
+                        val (area, perimeter) = calculateArea(vertices)
+                        _uiState.update {
+                            it.copy(
+                                currentProject = project,
+                                vertices = vertices,
+                                areaM2 = area,
+                                perimeterM = perimeter,
+                                isLoading = false
+                            )
+                        }
                     }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, error = "Project not found") }
                 }
-            } else {
-                _uiState.update { it.copy(isLoading = false, error = "Project not found") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "Failed to load project: ${e.message}") }
             }
         }
     }
@@ -106,27 +114,39 @@ class MapViewModel @Inject constructor(
         val project = _uiState.value.currentProject ?: return
         saveUndoState()
         viewModelScope.launch {
-            val vertex = VertexEntity(
-                projectId = project.id,
-                latitude = latitude,
-                longitude = longitude,
-                order = _uiState.value.vertices.size
-            )
-            repository.insertVertex(vertex)
+            try {
+                val vertex = VertexEntity(
+                    projectId = project.id,
+                    latitude = latitude,
+                    longitude = longitude,
+                    order = _uiState.value.vertices.size
+                )
+                repository.insertVertex(vertex)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to add vertex: ${e.message}") }
+            }
         }
     }
 
     fun removeVertex(vertex: VertexEntity) {
         saveUndoState()
         viewModelScope.launch {
-            repository.deleteVertex(vertex)
+            try {
+                repository.deleteVertex(vertex)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to remove vertex: ${e.message}") }
+            }
         }
     }
 
     fun updateVertex(vertex: VertexEntity) {
         saveUndoState()
         viewModelScope.launch {
-            repository.updateVertex(vertex)
+            try {
+                repository.updateVertex(vertex)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to update vertex: ${e.message}") }
+            }
         }
     }
 
@@ -149,17 +169,21 @@ class MapViewModel @Inject constructor(
     fun saveProject() {
         val project = _uiState.value.currentProject ?: return
         viewModelScope.launch {
-            val (area, perimeter) = withContext(Dispatchers.Default) {
-                calculateArea(_uiState.value.vertices)
-            }
-            repository.updateProject(
-                project.copy(
-                    areaM2 = area,
-                    perimeterM = perimeter,
-                    modifiedAt = System.currentTimeMillis()
+            try {
+                val (area, perimeter) = withContext(Dispatchers.Default) {
+                    calculateArea(_uiState.value.vertices)
+                }
+                repository.updateProject(
+                    project.copy(
+                        areaM2 = area,
+                        perimeterM = perimeter,
+                        modifiedAt = System.currentTimeMillis()
+                    )
                 )
-            )
-            _uiState.update { it.copy(areaM2 = area, perimeterM = perimeter) }
+                _uiState.update { it.copy(areaM2 = area, perimeterM = perimeter) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to save project: ${e.message}") }
+            }
         }
     }
 }
