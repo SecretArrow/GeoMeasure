@@ -24,11 +24,13 @@ class PdfReportGenerator(private val context: Context) {
     ): File {
         val file = FileUtils.createTempFile(context, project.name, "_laporan.pdf")
         val document = Document(PageSize.A4, 36f, 36f, 72f, 72f)
-        val fos = FileOutputStream(file)
-        PdfWriter.getInstance(document, fos)
-        document.open()
+        var fos: FileOutputStream? = null
 
         try {
+            fos = FileOutputStream(file)
+            PdfWriter.getInstance(document, fos!!)
+            document.open()
+
             // === TITLE ===
             val titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22f, BaseColor(46, 125, 50))
             document.add(Paragraph("GeoMeasure Pro", titleFont))
@@ -146,7 +148,7 @@ class PdfReportGenerator(private val context: Context) {
 
         } finally {
             try { document.close() } catch (_: Exception) {}
-            try { fos.close() } catch (_: Exception) {}
+            try { fos?.close() } catch (_: Exception) {}
         }
 
         return file

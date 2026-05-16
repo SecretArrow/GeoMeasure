@@ -254,7 +254,7 @@ fun UnitConverterSection() {
 
             OutlinedTextField(
                 value = inputValue,
-                onValueChange = { inputValue = it.filter { c -> c.isDigit() || c == '.' }; convert(it, fromUnit, toUnit, useArea) { convertedValue = it } },
+                onValueChange = { inputValue = it.filter { c -> c.isDigit() || c == '.' }.let { s -> if (s.count { c -> c == '.' } > 1) s.dropLastWhile { c -> c != '.' } + "" else s }; convert(it, fromUnit, toUnit, useArea) { convertedValue = it } },
                 label = { Text("Value") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),

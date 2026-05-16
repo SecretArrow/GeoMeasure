@@ -20,7 +20,10 @@ class OfflineMapManager(private val context: Context) {
     }
 
     fun importMbtilesFile(source: File): Boolean {
+        if (!source.exists() || !source.isFile) return false
         val dest = File(tileCacheDir, source.name)
-        return source.copyTo(dest, overwrite = true).exists()
+        return try {
+            source.copyTo(dest, overwrite = true).exists()
+        } catch (_: Exception) { false }
     }
 }

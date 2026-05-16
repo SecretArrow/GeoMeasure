@@ -39,7 +39,8 @@ object UtmProjection {
      * @return Triple(easting, northing, zone)
      */
     fun toUtm(lat: Double, lon: Double, zone: Int = utmZone(lon)): Triple<Double, Double, Int> {
-        val latRad = Math.toRadians(lat)
+        val clampedLat = lat.coerceIn(-80.0, 84.0)
+        val latRad = Math.toRadians(clampedLat)
         val lonRad = Math.toRadians(lon)
         val lon0 = Math.toRadians(centralMeridian(zone))
         val dLon = lonRad - lon0
@@ -67,8 +68,8 @@ object UtmProjection {
                 + (5.0 - T + 9.0 * C + 4.0 * C * C) * A1.pow(4) / 24.0
                 + (61.0 - 58.0 * T + T * T + 600.0 * C - 330.0 * E2 / (1.0 - E2)) * A1.pow(6) / 720.0)
 
-        val hemi = if (lat < 0) "S" else "N"
-        val finalNorthing = if (lat < 0) northing + 10000000.0 else northing
+        val hemi = if (clampedLat < 0) "S" else "N"
+        val finalNorthing = if (clampedLat < 0) northing + 10000000.0 else northing
 
         return Triple(easting, finalNorthing, zone)
     }
@@ -79,6 +80,7 @@ object UtmProjection {
     fun utmString(lat: Double, lon: Double): String {
         val (easting, northing, zone) = toUtm(lat, lon)
         val hemi = if (lat < 0) "S" else "N"
+        if (easting.isNaN() || northing.isNaN()) return "N/A"
         return "${zone}${hemi} ${"%.2f".format(easting)}E ${"%.2f".format(northing)}N"
     }
 
@@ -99,8 +101,8 @@ object UtmProjection {
     fun toTm3(lat: Double, lon: Double): Triple<Double, Double, Int> {
         val zone = tm3Zone(lon)
         if (zone == 0) return toUtm(lat, lon) // fallback to UTM if outside Indonesia
-
-        val latRad = Math.toRadians(lat)
+        val clampedLat = lat.coerceIn(-80.0, 84.0)
+        val latRad = Math.toRadians(clampedLat)
         val lonRad = Math.toRadians(lon)
         val lon0 = Math.toRadians(tm3CentralMeridian(zone))
         val dLon = lonRad - lon0
@@ -127,13 +129,14 @@ object UtmProjection {
                 + (5.0 - T + 9.0 * C + 4.0 * C * C) * A1.pow(4) / 24.0
                 + (61.0 - 58.0 * T + T * T + 600.0 * C - 330.0 * E2 / (1.0 - E2)) * A1.pow(6) / 720.0)
 
-        val finalNorthing = if (lat < 0) northing + 10000000.0 else northing
+        val finalNorthing = if (clampedLat < 0) northing + 10000000.0 else northing
 
         return Triple(easting, finalNorthing, zone)
     }
 
     fun tm3String(lat: Double, lon: Double): String {
         val (easting, northing, zone) = toTm3(lat, lon)
+        if (easting.isNaN() || northing.isNaN()) return "N/A"
         return "TM3-${zone} ${"%.2f".format(easting)}E ${"%.2f".format(northing)}N"
     }
 }

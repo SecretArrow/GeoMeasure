@@ -102,8 +102,13 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
                 if (uri != null) {
-                    ctx.contentResolver.openOutputStream(uri)?.use { output ->
-                        dbFile.inputStream().use { input -> input.copyTo(output) }
+                    val output = ctx.contentResolver.openOutputStream(uri)
+                    if (output == null) {
+                        _uiState.update { it.copy(error = "Cannot open output file") }
+                        return@launch
+                    }
+                    output.use { out ->
+                        dbFile.inputStream().use { input -> input.copyTo(out) }
                     }
                 } else {
                     val backupFile = File(ctx.cacheDir, "geomeasure_backup.db")
@@ -120,6 +125,7 @@ class SettingsViewModel @Inject constructor(
 
     fun importBackup(uri: Uri? = null) {
         viewModelScope.launch {
+            if (_uiState.value.isRestoring) return@launch
             _uiState.update { it.copy(isRestoring = true, error = null, message = null) }
             try {
                 withContext(Dispatchers.IO) {
@@ -128,10 +134,17 @@ class SettingsViewModel @Inject constructor(
                     val walFile = File(dbFile.parent, "geomeasure.db-wal")
                     val shmFile = File(dbFile.parent, "geomeasure.db-shm")
 
+                    // Close database before overwriting to prevent corruption
+                    db.close()
+
                     if (uri != null) {
-                        ctx.contentResolver.openInputStream(uri)?.use { input ->
+                        val input = ctx.contentResolver.openInputStream(uri)
+                        if (input == null) {
+                            throw IllegalStateException("Cannot open backup file")
+                        }
+                        input.use { inp ->
                             dbFile.outputStream().use { output ->
-                                input.copyTo(output)
+                                inp.copyTo(output)
                             }
                         }
                         walFile.delete()
@@ -149,11 +162,16 @@ class SettingsViewModel @Inject constructor(
                         shmFile.delete()
                     }
 
+                    // Clear singleton so next injection creates a fresh connection
+                    AppDatabase.resetInstance()
+
                     _uiState.update {
                         it.copy(isRestoring = false, message = "Backup restored successfully")
                     }
                 }
             } catch (e: Exception) {
+                // Ensure singleton is reset even on failure
+                try { AppDatabase.resetInstance() } catch (_: Exception) {}
                 _uiState.update {
                     it.copy(isRestoring = false, error = "Restore failed: ${e.message}")
                 }
@@ -161,8 +179,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private var isDeleting = false
+
     fun deleteAll() {
+        if (isDeleting) return
         viewModelScope.launch {
+            isDeleting = true
             _uiState.update { it.copy(isDeleting = true, error = null, message = null) }
             try {
                 withContext(Dispatchers.IO) {
@@ -180,6 +202,8 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(isDeleting = false, error = "Delete failed: ${e.message}")
                 }
+            } finally {
+                isDeleting = false
             }
         }
     }

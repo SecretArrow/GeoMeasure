@@ -108,7 +108,7 @@ fun MapScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            myLocationOverlay?.enableMyLocation()
+            try { myLocationOverlay?.enableMyLocation() } catch (_: SecurityException) {}
         } else {
             Toast.makeText(context, "Location permission required for My Location", Toast.LENGTH_LONG).show()
         }

@@ -12,12 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.geomeasure.pro.core.util.UnitConverter
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -85,31 +80,6 @@ class AppPreferences @Inject constructor(
                 coordFormat = prefs[Keys.COORD_FORMAT] ?: "dd"
             )
         }
-
-    fun getSettingsBlocking(): AppSettings = runBlocking(Dispatchers.IO) {
-        context.dataStore.data.map { prefs ->
-            AppSettings(
-                darkMode = prefs[Keys.DARK_MODE] ?: false,
-                dynamicColor = prefs[Keys.DYNAMIC_COLOR] ?: true,
-                showGpsPanel = prefs[Keys.SHOW_GPS_PANEL] ?: true,
-                defaultAreaUnit = try {
-                    UnitConverter.AreaUnit.valueOf(prefs[Keys.DEFAULT_AREA_UNIT] ?: "SQUARE_METRE")
-                } catch (_: Exception) { UnitConverter.AreaUnit.SQUARE_METRE },
-                defaultDistanceUnit = try {
-                    UnitConverter.DistanceUnit.valueOf(prefs[Keys.DEFAULT_DISTANCE_UNIT] ?: "METRE")
-                } catch (_: Exception) { UnitConverter.DistanceUnit.METRE },
-                decimalPlaces = prefs[Keys.DECIMAL_PLACES] ?: 4,
-                gpsAccuracyThreshold = prefs[Keys.GPS_ACCURACY_THRESHOLD] ?: 10f,
-                gpsMinDistance = prefs[Keys.GPS_MIN_DISTANCE] ?: 1f,
-                gpsIntervalMs = (prefs[Keys.GPS_INTERVAL_SEC] ?: 1) * 1000L,
-                gpsIntervalSec = (prefs[Keys.GPS_INTERVAL_SEC] ?: 1).toLong(),
-                tileSource = prefs[Keys.TILE_SOURCE] ?: "MAPNIK",
-                cacheSizeMb = prefs[Keys.CACHE_SIZE_MB] ?: 256,
-            language = prefs[Keys.LANGUAGE] ?: "en",
-            coordFormat = prefs[Keys.COORD_FORMAT] ?: "dd"
-            )
-        }.first()
-    }
 
     suspend fun setDarkMode(enabled: Boolean) {
         context.dataStore.edit { it[Keys.DARK_MODE] = enabled }

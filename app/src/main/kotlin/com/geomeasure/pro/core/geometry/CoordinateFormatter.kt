@@ -48,15 +48,19 @@ object CoordinateFormatter {
         toDms(decimal, isLatitude).dmsCompact
 
     fun bearingBetween(lat1: Double, lon1: Double, lat2: Double, lon2: Double): BearingResult {
-        val dLon = Math.toRadians(lon2 - lon1)
-        val rLat1 = Math.toRadians(lat1)
-        val rLat2 = Math.toRadians(lat2)
-        val x = sin(dLon) * cos(rLat2)
-        val y = cos(rLat1) * sin(rLat2) - sin(rLat1) * cos(rLat2) * cos(dLon)
-        val azimuthDeg = (Math.toDegrees(atan2(x, y)) + 360) % 360
+        val distance = GeometryCalculator.haversineDistance(GeoPoint(lat1, lon1), GeoPoint(lat2, lon2))
+        val azimuthDeg = if (distance < 1e-8) {
+            0.0
+        } else {
+            val dLon = Math.toRadians(lon2 - lon1)
+            val rLat1 = Math.toRadians(lat1)
+            val rLat2 = Math.toRadians(lat2)
+            val x = sin(dLon) * cos(rLat2)
+            val y = cos(rLat1) * sin(rLat2) - sin(rLat1) * cos(rLat2) * cos(dLon)
+            (Math.toDegrees(atan2(x, y)) + 360) % 360
+        }
 
         val dmsDir = azimuthToDms(azimuthDeg)
-        val distance = GeometryCalculator.haversineDistance(GeoPoint(lat1, lon1), GeoPoint(lat2, lon2))
         val bearingLabel = azimuthToBearingLabel(azimuthDeg)
         val azimuthDms = "${azimuthDeg.toInt()}°${((azimuthDeg - azimuthDeg.toInt()) * 60).toInt()}'"
 
