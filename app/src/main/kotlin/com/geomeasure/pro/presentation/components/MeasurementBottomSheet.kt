@@ -440,7 +440,8 @@ fun MeasurementBottomSheet(
                         onClick = {
                             if (project != null) {
                                 val content = GeoJsonExporter().export(project, sortedVertices)
-                                val file = java.io.File(context.cacheDir, "${project.name}.geojson")
+                                val safeName = project.name.replace(Regex("[/\\\\?%*:|\"<>]"), "_")
+                                val file = java.io.File(context.cacheDir, "${safeName}.geojson")
                                 file.parentFile?.mkdirs()
                                 file.writeText(content)
                                 val uri = androidx.core.content.FileProvider.getUriForFile(

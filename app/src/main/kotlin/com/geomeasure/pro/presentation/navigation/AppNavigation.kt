@@ -89,7 +89,20 @@ fun AppNavigation() {
             modifier = Modifier.padding(padding)
         ) {
             composable("map") { MapScreen() }
-            composable("projects") { ProjectListScreen() }
+            composable("map/{projectId}") { backStackEntry ->
+                MapScreen(projectId = backStackEntry.arguments?.getString("projectId"))
+            }
+            composable("projects") {
+                ProjectListScreen(
+                    onProjectClick = { projectId ->
+                        navController.navigate("map/$projectId") {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
             composable("tools") { ToolsScreen() }
             composable("drive") { DriveSettingsScreen() }
             composable("settings") { SettingsScreen() }

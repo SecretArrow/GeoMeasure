@@ -158,7 +158,8 @@ class ExportViewModel @Inject constructor(
     }
 
     private fun createShareFile(content: String, extension: String) {
-        val fileName = "${_uiState.value.selectedProject?.name ?: "export"}.$extension"
+        val safeName = (_uiState.value.selectedProject?.name ?: "export").replace(Regex("[/\\\\?%*:|\"<>]"), "_")
+        val fileName = "${safeName}.$extension"
         val file = java.io.File(getApplication<Application>().cacheDir, fileName)
         file.parentFile?.mkdirs()
         file.writeText(content)

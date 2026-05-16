@@ -3,6 +3,7 @@ package com.geomeasure.pro.presentation.screens.map
 import android.app.Application
 import com.geomeasure.pro.data.local.db.entities.ProjectEntity
 import com.geomeasure.pro.data.local.db.entities.VertexEntity
+import com.geomeasure.pro.core.gps.GpsStatusProvider
 import com.geomeasure.pro.domain.repository.MeasurementRepository
 import com.geomeasure.pro.domain.usecase.CalculateAreaUseCase
 import io.mockk.*
@@ -19,6 +20,7 @@ import org.junit.Assert.*
 class MapViewModelTest {
     private lateinit var repository: MeasurementRepository
     private lateinit var calculateArea: CalculateAreaUseCase
+    private lateinit var gpsStatusProvider: GpsStatusProvider
     private lateinit var viewModel: MapViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -27,12 +29,13 @@ class MapViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repository = mockk(relaxed = true)
         calculateArea = CalculateAreaUseCase()
+        gpsStatusProvider = mockk(relaxed = true)
         
         val app = mockk<Application>(relaxed = true)
         every { repository.getAllProjects() } returns MutableStateFlow(emptyList())
         every { repository.getVerticesForProject(any()) } returns MutableStateFlow(emptyList())
         
-        viewModel = MapViewModel(app, repository, calculateArea)
+        viewModel = MapViewModel(app, repository, calculateArea, gpsStatusProvider)
     }
 
     @After

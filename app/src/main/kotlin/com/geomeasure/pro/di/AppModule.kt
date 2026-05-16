@@ -48,14 +48,7 @@ object AppModule {
     ): MeasurementRepository =
         MeasurementRepositoryImpl(projectDao, vertexDao, folderDao)
 
-    @Provides
-    @Singleton
-    fun provideMeasurementRepositoryImpl(
-        projectDao: ProjectDao,
-        vertexDao: VertexDao,
-        folderDao: FolderDao
-    ): MeasurementRepositoryImpl =
-        MeasurementRepositoryImpl(projectDao, vertexDao, folderDao)
+    // GpsRecordingService injects MeasurementRepository via the interface binding above
 
     @Provides
     @Singleton

@@ -73,7 +73,7 @@ object CoordinateFormatter {
     private fun azimuthToBearingLabel(azimuth: Double): String {
         val dirs = listOf("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
             "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
-        val index = ((azimuth + 11.25) / 22.5).toInt() % 16
+        val index = ((azimuth + 11.25) / 22.5).toInt().mod(16)
         return dirs[index]
     }
 
@@ -92,17 +92,19 @@ object CoordinateFormatter {
     }
 
     fun formatArea(areaM2: Double, lang: String = "en"): String {
+        val a = abs(areaM2)
         return when {
-            areaM2 >= 10000 -> "${"%.2f".format(areaM2 / 10000)} ha"
-            areaM2 >= 1000 -> "${"%.2f".format(areaM2 / 100)} a"
-            else -> "${"%.2f".format(areaM2)} m${if (lang == "id") "\u00B2" else "2"}"
+            a >= 10000 -> "${"%.2f".format(a / 10000)} ha"
+            a >= 1000 -> "${"%.2f".format(a / 100)} a"
+            else -> "${"%.2f".format(a)} m${if (lang == "id") "\u00B2" else "2"}"
         }
     }
 
     fun formatDistance(meters: Double, lang: String = "en"): String {
+        val m = abs(meters)
         return when {
-            meters >= 1000 -> "${"%.2f".format(meters / 1000)} km"
-            else -> "${"%.1f".format(meters)} m"
+            m >= 1000 -> "${"%.2f".format(m / 1000)} km"
+            else -> "${"%.1f".format(m)} m"
         }
     }
 }

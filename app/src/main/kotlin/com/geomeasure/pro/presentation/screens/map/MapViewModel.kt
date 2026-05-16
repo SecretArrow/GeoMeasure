@@ -3,6 +3,7 @@ package com.geomeasure.pro.presentation.screens.map
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.geomeasure.pro.core.gps.GpsStatusProvider
 import com.geomeasure.pro.data.local.db.entities.ProjectEntity
 import com.geomeasure.pro.data.local.db.entities.VertexEntity
 import com.geomeasure.pro.domain.model.GpsStatus
@@ -23,7 +24,8 @@ import javax.inject.Inject
 class MapViewModel @Inject constructor(
     application: Application,
     private val repository: MeasurementRepository,
-    private val calculateArea: CalculateAreaUseCase
+    private val calculateArea: CalculateAreaUseCase,
+    private val gpsStatusProvider: GpsStatusProvider
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(MapUiState())
@@ -32,6 +34,18 @@ class MapViewModel @Inject constructor(
     private val undoStack = mutableListOf<List<VertexEntity>>()
     private val redoStack = mutableListOf<List<VertexEntity>>()
     private var projectLoadJob: kotlinx.coroutines.Job? = null
+    private val gpsCallback: (GpsStatus) -> Unit = { status ->
+        _uiState.update { it.copy(gpsStatus = status) }
+    }
+
+    init {
+        gpsStatusProvider.register(gpsCallback)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        gpsStatusProvider.unregister(gpsCallback)
+    }
 
     private fun saveUndoState() {
         undoStack.add(_uiState.value.vertices.toList())

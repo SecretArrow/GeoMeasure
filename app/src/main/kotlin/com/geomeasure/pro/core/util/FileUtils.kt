@@ -33,6 +33,7 @@ object FileUtils {
     fun createTempFile(context: Context, prefix: String, suffix: String): java.io.File {
         val dir = java.io.File(context.cacheDir, "exports")
         dir.mkdirs()
-        return java.io.File.createTempFile(prefix, suffix, dir)
+        val safePrefix = prefix.replace(Regex("[/\\\\?%*:|\"<>]"), "_")
+        return java.io.File.createTempFile(safePrefix, suffix, dir)
     }
 }

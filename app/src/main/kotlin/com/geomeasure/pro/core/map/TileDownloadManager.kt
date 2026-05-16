@@ -52,12 +52,12 @@ class TileDownloadManager(private val context: Context) {
                     connection.setRequestProperty("User-Agent", Configuration.getInstance().userAgentValue)
                     connection.connectTimeout = 10000
                     connection.readTimeout = 10000
-                    val inputStream = connection.getInputStream()
-                    tileFile.parentFile?.mkdirs()
-                    tileFile.outputStream().use { output ->
-                        inputStream.copyTo(output)
+                    connection.getInputStream().use { inputStream ->
+                        tileFile.parentFile?.mkdirs()
+                        tileFile.outputStream().use { output ->
+                            inputStream.copyTo(output)
+                        }
                     }
-                    inputStream.close()
                 } catch (e: Exception) {
                     // Skip failed tiles
                 }

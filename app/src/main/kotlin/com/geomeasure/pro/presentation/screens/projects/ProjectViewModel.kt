@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,13 +27,15 @@ class ProjectViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ProjectListUiState())
     val uiState: StateFlow<ProjectListUiState> = _uiState.asStateFlow()
+    private var collectionJob: Job? = null
 
     init {
         loadProjects()
     }
 
     private fun loadProjects() {
-        viewModelScope.launch {
+        collectionJob?.cancel()
+        collectionJob = viewModelScope.launch {
             try {
                 repository.getAllProjects().collect { projects ->
                     _uiState.update {
@@ -47,10 +50,13 @@ class ProjectViewModel @Inject constructor(
 
     fun search(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
-        viewModelScope.launch {
+        collectionJob?.cancel()
+        collectionJob = viewModelScope.launch {
             try {
                 if (query.isBlank()) {
-                    loadProjects()
+                    repository.getAllProjects().collect { projects ->
+                        _uiState.update { it.copy(projects = projects) }
+                    }
                 } else {
                     repository.searchProjects(query).collect { projects ->
                         _uiState.update { it.copy(projects = projects) }

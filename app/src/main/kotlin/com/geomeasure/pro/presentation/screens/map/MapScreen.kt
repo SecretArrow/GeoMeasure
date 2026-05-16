@@ -114,6 +114,15 @@ fun MapScreen(
         }
     }
 
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.createNewProject()
+            viewModel.setRecording(true)
+        }
+    }
+
     LaunchedEffect(projectId) {
         if (projectId != null) {
             viewModel.loadProject(projectId)
@@ -197,7 +206,8 @@ fun MapScreen(
 
                         val file = java.io.File(context.cacheDir, "screenshots")
                         file.mkdirs()
-                        val imageFile = java.io.File(file, "${project.name}.png")
+                        val safeName = project.name.replace(Regex("[/\\\\?%*:|\"<>]"), "_")
+                        val imageFile = java.io.File(file, "${safeName}.png")
                         imageFile.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                         bmp.recycle()
 
@@ -314,8 +324,8 @@ fun MapScreen(
                                 if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
                                     == PackageManager.PERMISSION_GRANTED
                                 ) {
-                                    overlay.enableMyLocation()
-                                    overlay.enableFollowLocation()
+                                    try { overlay.enableMyLocation() } catch (_: SecurityException) {}
+                                    try { overlay.enableFollowLocation() } catch (_: SecurityException) {}
                                     overlay.runOnFirstFix {
                                         overlay.myLocation?.let { mv.controller.animateTo(it) }
                                     }
@@ -380,12 +390,12 @@ fun MapScreen(
                                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                                     == PackageManager.PERMISSION_GRANTED
                                 ) {
-                                    myLocationOverlay?.enableMyLocation()
+                                    try { myLocationOverlay?.enableMyLocation() } catch (_: SecurityException) {}
                                 }
                             }
                             Lifecycle.Event.ON_PAUSE -> {
                                 mapViewRef?.onPause()
-                                myLocationOverlay?.disableMyLocation()
+                                try { myLocationOverlay?.disableMyLocation() } catch (_: SecurityException) {}
                             }
                             else -> {}
                         }
@@ -393,7 +403,7 @@ fun MapScreen(
                     lifecycleOwner.lifecycle.addObserver(observer)
                     onDispose {
                         lifecycleOwner.lifecycle.removeObserver(observer)
-                        myLocationOverlay?.disableMyLocation()
+                        try { myLocationOverlay?.disableMyLocation() } catch (_: SecurityException) {}
                         mapViewRef?.onDetach()
                     }
                 }
@@ -475,7 +485,7 @@ fun MapScreen(
                                         context, Manifest.permission.ACCESS_FINE_LOCATION
                                     ) == PackageManager.PERMISSION_GRANTED
                                 ) {
-                                    overlay.enableMyLocation()
+                                    try { overlay.enableMyLocation() } catch (_: SecurityException) {}
                                 }
                                 if (overlay.myLocation != null) {
                                     isFollowing = !isFollowing
@@ -513,6 +523,13 @@ fun MapScreen(
                                 viewModel.setRecording(false)
                                 Toast.makeText(context, "Measurement saved", Toast.LENGTH_SHORT).show()
                             } else {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                                    != PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    return@FloatingActionButton
+                                }
                                 viewModel.createNewProject()
                                 viewModel.setRecording(true)
                             }

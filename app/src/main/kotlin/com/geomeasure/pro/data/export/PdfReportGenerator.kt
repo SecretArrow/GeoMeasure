@@ -24,7 +24,8 @@ class PdfReportGenerator(private val context: Context) {
     ): File {
         val file = FileUtils.createTempFile(context, project.name, "_laporan.pdf")
         val document = Document(PageSize.A4, 36f, 36f, 72f, 72f)
-        PdfWriter.getInstance(document, FileOutputStream(file))
+        val fos = FileOutputStream(file)
+        PdfWriter.getInstance(document, fos)
         document.open()
 
         try {
@@ -144,7 +145,8 @@ class PdfReportGenerator(private val context: Context) {
             document.add(Chunk.NEWLINE)
 
         } finally {
-            document.close()
+            try { document.close() } catch (_: Exception) {}
+            try { fos.close() } catch (_: Exception) {}
         }
 
         return file

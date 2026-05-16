@@ -12,11 +12,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.geomeasure.pro.R
 import com.geomeasure.pro.data.local.prefs.AppPreferences
-import com.geomeasure.pro.data.repository.MeasurementRepositoryImpl
+import com.geomeasure.pro.domain.repository.MeasurementRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,7 +26,7 @@ import javax.inject.Inject
 class GpsRecordingService : Service() {
 
     @Inject lateinit var locationManager: LocationManager
-    @Inject lateinit var repository: MeasurementRepositoryImpl
+    @Inject lateinit var repository: MeasurementRepository
     @Inject lateinit var prefs: AppPreferences
 
     private val binder = LocalBinder()
@@ -58,39 +59,60 @@ class GpsRecordingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    override fun onCreate() {
+        super.onCreate()
+        val channel = android.app.NotificationChannel(
+            CHANNEL_ID, "GPS Recording",
+            android.app.NotificationManager.IMPORTANCE_LOW
+        ).apply { setShowBadge(false) }
+        (getSystemService(NOTIFICATION_SERVICE) as? android.app.NotificationManager)
+            ?.createNotificationChannel(channel)
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
             stopSelf()
             return START_NOT_STICKY
         }
 
-        projectId = intent?.getStringExtra("project_id") ?: return START_NOT_STICKY
+        // MUST call startForeground synchronously to prevent ANR
+        startForeground(NOTIF_ID, buildNotification("Starting GPS..."))
+
+        projectId = intent?.getStringExtra("project_id") ?: run {
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         serviceScope.launch {
-            val settings = prefs.settings.first()
-            accuracyThreshold = settings.gpsAccuracyThreshold
-            minDistance = settings.gpsMinDistance
-            intervalMs = settings.gpsIntervalMs
+            try {
+                val settings = prefs.settings.first()
+                accuracyThreshold = settings.gpsAccuracyThreshold
+                minDistance = settings.gpsMinDistance
+                intervalMs = settings.gpsIntervalMs
 
-            if (ContextCompat.checkSelfPermission(this@GpsRecordingService, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
+                if (ContextCompat.checkSelfPermission(this@GpsRecordingService, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    stopSelf()
+                    return@launch
+                }
+
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    intervalMs,
+                    minDistance,
+                    locationListener
+                )
+                updateNotification()
+            } catch (e: Exception) {
                 stopSelf()
-                return@launch
             }
-
-            startForeground(NOTIF_ID, buildNotification("Recording GPS"))
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                intervalMs,
-                minDistance,
-                locationListener
-            )
         }
         return START_REDELIVER_INTENT
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
         locationManager.removeUpdates(locationListener)
         super.onDestroy()
     }

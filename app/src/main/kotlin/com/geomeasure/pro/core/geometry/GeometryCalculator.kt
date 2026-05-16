@@ -38,7 +38,7 @@ object GeometryCalculator {
         val h = sinDLat * sinDLat +
                 cos(Math.toRadians(a.latitude)) * cos(Math.toRadians(b.latitude)) *
                 sinDLon * sinDLon
-        return 2 * R * asin(sqrt(h))
+        return 2 * R * asin(sqrt(h.coerceIn(0.0, 1.0)))
     }
 }
 
