@@ -6,8 +6,15 @@ import com.geomeasure.pro.data.local.db.entities.VertexEntity
 
 class KmlExporter {
     fun export(project: ProjectEntity, vertices: List<VertexEntity>): String {
-        val coords = vertices.sortedBy { it.order }
-            .joinToString(" ") { "${it.longitude},${it.latitude},${it.altitude}" }
+        val sorted = vertices.sortedBy { it.order }
+        val coords = sorted.joinToString(" ") { "${it.longitude},${it.latitude},${it.altitude}" }
+        // Close the polygon ring by repeating the first coordinate
+        val closedCoords = if (sorted.isNotEmpty()) {
+            val first = sorted.first()
+            "$coords ${first.longitude},${first.latitude},${first.altitude}"
+        } else {
+            coords
+        }
 
         return """<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -17,7 +24,7 @@ class KmlExporter {
     <Polygon>
       <outerBoundaryIs>
         <LinearRing>
-          <coordinates>$coords</coordinates>
+          <coordinates>$closedCoords</coordinates>
         </LinearRing>
       </outerBoundaryIs>
     </Polygon>

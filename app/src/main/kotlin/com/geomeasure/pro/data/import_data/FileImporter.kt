@@ -44,7 +44,7 @@ class FileImporter @Inject constructor(private val db: AppDatabase) {
 
         if (features.length() == 0) error("GeoJSON has no features")
         val feature = features.getJSONObject(0)
-        val geometry = feature.getJSONObject("geometry")
+        val geometry = feature.optJSONObject("geometry") ?: error("Feature missing geometry")
         val geometryType = geometry.optString("type", "Polygon")
         val props = feature.optJSONObject("properties") ?: JSONObject()
 
@@ -62,11 +62,27 @@ class FileImporter @Inject constructor(private val db: AppDatabase) {
                 ))
                 JSONArray()
             }
-            "LineString" -> geometry.getJSONArray("coordinates")
-            "Polygon" -> geometry.getJSONArray("coordinates").getJSONArray(0)
+            "LineString" -> {
+                val arr = geometry.getJSONArray("coordinates")
+                if (arr.length() == 0) error("Empty LineString coordinates")
+                arr
+            }
+            "Polygon" -> {
+                val arr = geometry.getJSONArray("coordinates")
+                if (arr.length() == 0) error("Empty Polygon coordinates")
+                arr.getJSONArray(0)
+            }
             "MultiPoint" -> geometry.getJSONArray("coordinates")
-            "MultiLineString" -> geometry.getJSONArray("coordinates").getJSONArray(0)
-            "MultiPolygon" -> geometry.getJSONArray("coordinates").getJSONArray(0).getJSONArray(0)
+            "MultiLineString" -> {
+                val arr = geometry.getJSONArray("coordinates")
+                if (arr.length() == 0) error("Empty MultiLineString coordinates")
+                arr.getJSONArray(0)
+            }
+            "MultiPolygon" -> {
+                val arr = geometry.getJSONArray("coordinates")
+                if (arr.length() == 0) error("Empty MultiPolygon coordinates")
+                arr.getJSONArray(0).getJSONArray(0)
+            }
             else -> error("Unsupported geometry type: $geometryType")
         }
 

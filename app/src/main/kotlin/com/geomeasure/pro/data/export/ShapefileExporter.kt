@@ -25,14 +25,14 @@ class ShapefileExporter @Inject constructor() {
         val dbfFile = File(shpFile.parent, shpFile.nameWithoutExtension + ".dbf")
 
         val sorted = vertices.sortedBy { it.order }
-        val numPoints = sorted.size + 1
+        val numPoints = if (sorted.isEmpty()) 0 else sorted.size + 1
         val points = mutableListOf<Pair<Double, Double>>()
         sorted.forEach { points.add(it.longitude to it.latitude) }
         if (points.isNotEmpty()) points.add(points[0])
 
-        val numParts = 1
-        val contentLengthWords = 50 + numPoints * 8
-        val fileLengthWords = 50 + contentLengthWords
+        val numParts = if (points.isEmpty()) 0 else 1
+        val contentLengthWords = if (points.isEmpty()) 0 else 50 + numPoints * 8
+        val fileLengthWords = if (points.isEmpty()) 0 else 50 + contentLengthWords
 
         // Write .shp
         writeShapefile(shpFile, points, contentLengthWords, fileLengthWords, numParts, numPoints)
@@ -61,8 +61,10 @@ class ShapefileExporter @Inject constructor() {
         // Record content: Polygon (type 5)
         bb.putInt(5)            // shape type = Polygon
         // MBR
-        val minX = points.minOf { it.first }; val minY = points.minOf { it.second }
-        val maxX = points.maxOf { it.first }; val maxY = points.maxOf { it.second }
+        val minX = if (points.isEmpty()) 0.0 else points.minOf { it.first }
+        val minY = if (points.isEmpty()) 0.0 else points.minOf { it.second }
+        val maxX = if (points.isEmpty()) 0.0 else points.maxOf { it.first }
+        val maxY = if (points.isEmpty()) 0.0 else points.maxOf { it.second }
         bb.putDouble(minX); bb.putDouble(minY); bb.putDouble(maxX); bb.putDouble(maxY)
         bb.putInt(numParts)     // num parts
         bb.putInt(numPoints)    // num points
@@ -88,7 +90,8 @@ class ShapefileExporter @Inject constructor() {
 
     private fun putShpHeader(
         bb: ByteBuffer, fileLen: Int, shapeType: Int,
-        numParts: Int, numPoints: Int, points: List<Pair<Double, Double>>
+        @Suppress("UNUSED_PARAMETER") numParts: Int, @Suppress("UNUSED_PARAMETER") numPoints: Int,
+        points: List<Pair<Double, Double>>
     ) {
         bb.order(ByteOrder.BIG_ENDIAN)
         bb.putInt(9994); bb.putInt(0); bb.putInt(0); bb.putInt(0); bb.putInt(0); bb.putInt(0)
@@ -104,7 +107,7 @@ class ShapefileExporter @Inject constructor() {
         bb.putDouble(0.0); bb.putDouble(0.0); bb.putDouble(0.0); bb.putDouble(0.0)
     }
 
-    private fun writeDbf(file: File, project: ProjectEntity, vertices: List<VertexEntity>) {
+    private fun writeDbf(file: File, @Suppress("UNUSED_PARAMETER") project: ProjectEntity, vertices: List<VertexEntity>) {
         val charset = Charset.forName("ISO-8859-1")
         val records = vertices.sortedBy { it.order }
 

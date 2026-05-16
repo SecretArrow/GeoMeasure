@@ -1,17 +1,20 @@
 package com.geomeasure.pro.presentation.screens.settings
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.geomeasure.pro.core.map.OfflineMapManager
+import com.geomeasure.pro.core.security.KeystoreManager
 import com.geomeasure.pro.core.util.UnitConverter
 import com.geomeasure.pro.data.local.db.AppDatabase
 import com.geomeasure.pro.data.local.db.dao.ProjectDao
 import com.geomeasure.pro.data.local.db.dao.VertexDao
 import com.geomeasure.pro.data.local.prefs.AppPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,15 +40,23 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     application: Application,
     private val prefs: AppPreferences,
-    private val db: AppDatabase,
-    private val projectDao: ProjectDao,
-    private val vertexDao: VertexDao
+    @ApplicationContext private val context: Context
 ) : AndroidViewModel(application) {
 
     val settings = prefs.settings
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private var currentDb: AppDatabase = AppDatabase.getInstance(context, KeystoreManager.getOrCreateDatabaseKey(context))
+    private var currentProjectDao: ProjectDao = currentDb.projectDao()
+    private var currentVertexDao: VertexDao = currentDb.vertexDao()
+
+    private fun refreshDaos() {
+        currentDb = AppDatabase.getInstance(context, KeystoreManager.getOrCreateDatabaseKey(context))
+        currentProjectDao = currentDb.projectDao()
+        currentVertexDao = currentDb.vertexDao()
+    }
 
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch { try { prefs.setDarkMode(enabled) } catch (_: Exception) {} }
@@ -135,7 +146,7 @@ class SettingsViewModel @Inject constructor(
                     val shmFile = File(dbFile.parent, "geomeasure.db-shm")
 
                     // Close database before overwriting to prevent corruption
-                    db.close()
+                    currentDb.close()
 
                     if (uri != null) {
                         val input = ctx.contentResolver.openInputStream(uri)
@@ -164,6 +175,7 @@ class SettingsViewModel @Inject constructor(
 
                     // Clear singleton so next injection creates a fresh connection
                     AppDatabase.resetInstance()
+                    refreshDaos()
 
                     _uiState.update {
                         it.copy(isRestoring = false, message = "Backup restored successfully")
@@ -171,7 +183,7 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 // Ensure singleton is reset even on failure
-                try { AppDatabase.resetInstance() } catch (_: Exception) {}
+                try { AppDatabase.resetInstance(); refreshDaos() } catch (_: Exception) {}
                 _uiState.update {
                     it.copy(isRestoring = false, error = "Restore failed: ${e.message}")
                 }
@@ -188,10 +200,10 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isDeleting = true, error = null, message = null) }
             try {
                 withContext(Dispatchers.IO) {
-                    val projectList = projectDao.getAllProjects().first()
+                    val projectList = currentProjectDao.getAllProjects().first()
                     for (project in projectList) {
-                        vertexDao.deleteVerticesForProject(project.id)
-                        projectDao.deleteProject(project)
+                        currentVertexDao.deleteVerticesForProject(project.id)
+                        currentProjectDao.deleteProject(project)
                     }
                     android.util.Log.d("SettingsVM", "All data deleted")
                 }

@@ -38,6 +38,7 @@ class GpsRecordingService : Service() {
     private var minDistance = 1f
     private var intervalMs = 1000L
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var isStarted = false
 
     inner class LocalBinder : Binder() {
         fun getService() = this@GpsRecordingService
@@ -71,17 +72,26 @@ class GpsRecordingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
+            stopForeground(true)
             stopSelf()
             return START_NOT_STICKY
+        }
+
+        if (isStarted) {
+            updateNotification()
+            return START_REDELIVER_INTENT
         }
 
         // MUST call startForeground synchronously to prevent ANR
         startForeground(NOTIF_ID, buildNotification("Starting GPS..."))
 
         projectId = intent?.getStringExtra("project_id") ?: run {
+            stopForeground(true)
             stopSelf()
             return START_NOT_STICKY
         }
+
+        isStarted = true
 
         serviceScope.launch {
             try {
@@ -93,7 +103,9 @@ class GpsRecordingService : Service() {
                 if (ContextCompat.checkSelfPermission(this@GpsRecordingService, android.Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED
                 ) {
+                    stopForeground(true)
                     stopSelf()
+                    isStarted = false
                     return@launch
                 }
 
@@ -105,13 +117,16 @@ class GpsRecordingService : Service() {
                 )
                 updateNotification()
             } catch (e: Exception) {
+                stopForeground(true)
                 stopSelf()
+                isStarted = false
             }
         }
         return START_REDELIVER_INTENT
     }
 
     override fun onDestroy() {
+        isStarted = false
         serviceScope.cancel()
         locationManager.removeUpdates(locationListener)
         super.onDestroy()

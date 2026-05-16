@@ -176,7 +176,10 @@ class ExportViewModel @Inject constructor(
     fun importFile(uri: Uri) {
         viewModelScope.launch {
             try {
-                importFile(uri, getApplication())
+                val result = importFile(uri, getApplication())
+                if (result.isFailure) {
+                    throw result.exceptionOrNull() ?: Exception("Import failed")
+                }
                 _uiState.update {
                     it.copy(successMessage = "File imported successfully", error = null)
                 }

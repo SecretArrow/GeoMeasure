@@ -28,7 +28,7 @@ class PdfReportGenerator(private val context: Context) {
 
         try {
             fos = FileOutputStream(file)
-            PdfWriter.getInstance(document, fos!!)
+            PdfWriter.getInstance(document, fos)
             document.open()
 
             // === TITLE ===

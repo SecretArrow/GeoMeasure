@@ -62,5 +62,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLocationManager(@ApplicationContext ctx: Context): LocationManager =
-        ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        ctx.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            ?: error("LocationManager not available")
 }

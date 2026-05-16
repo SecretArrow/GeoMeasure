@@ -9,5 +9,5 @@ val MIGRATION_1_2 = Migration(1, 2) { db ->
 }
 
 val MIGRATION_2_3 = Migration(2, 3) { db ->
-    db.execSQL("ALTER TABLE projects ADD COLUMN stroke_color INTEGER NOT NULL DEFAULT 0xFF2E7D32")
+    db.execSQL("ALTER TABLE projects ADD COLUMN stroke_color INTEGER NOT NULL DEFAULT -3866258")
 }

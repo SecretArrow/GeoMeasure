@@ -30,13 +30,12 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: android.content.Context, passphrase: ByteArray): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val factory = SupportFactory(passphrase)
-                Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "geomeasure.db"
                 )
-                    .openHelperFactory(factory)
+                    .openHelperFactory(SupportFactory(passphrase))
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration()
                     .build()

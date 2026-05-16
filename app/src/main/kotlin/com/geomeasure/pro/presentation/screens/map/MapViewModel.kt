@@ -184,9 +184,9 @@ class MapViewModel @Inject constructor(
     }
 
     fun saveProject() {
-        val project = _uiState.value.currentProject ?: return
         viewModelScope.launch {
             try {
+                val project = _uiState.value.currentProject ?: return@launch
                 val (area, perimeter) = withContext(Dispatchers.Default) {
                     calculateArea(_uiState.value.vertices)
                 }
