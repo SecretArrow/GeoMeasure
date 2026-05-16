@@ -6,6 +6,7 @@ import android.location.LocationManager
 import com.geomeasure.pro.domain.model.GpsStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlin.math.sqrt
+import java.util.concurrent.CopyOnWriteArrayList
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,7 +15,7 @@ class GpsStatusProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-    private var listeners = mutableListOf<(GpsStatus) -> Unit>()
+    private val listeners = CopyOnWriteArrayList<(GpsStatus) -> Unit>()
 
     private val gnssCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {

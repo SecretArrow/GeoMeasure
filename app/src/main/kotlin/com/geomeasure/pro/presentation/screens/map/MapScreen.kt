@@ -163,6 +163,10 @@ fun MapScreen(
                 onShareScreenshot = {
                     val mv = mapViewRef ?: return@MeasurementBottomSheet
                     val project = uiState.currentProject ?: return@MeasurementBottomSheet
+                    if (mv.width <= 0 || mv.height <= 0) {
+                        Toast.makeText(context, "Map not ready yet", Toast.LENGTH_SHORT).show()
+                        return@MeasurementBottomSheet
+                    }
                     try {
                         val bmp = Bitmap.createBitmap(mv.width, mv.height, Bitmap.Config.ARGB_8888)
                         val canvas = Canvas(bmp)
